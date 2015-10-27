@@ -9,3 +9,10 @@ geoserver:
     - "8084:8080"
   links:
     - db
+
+destinationgeoserver:
+  image: geographica/geoserver:v2.6.2
+  ports:
+    - "8085:8080"
+  links:
+    - db

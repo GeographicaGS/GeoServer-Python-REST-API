@@ -6,7 +6,7 @@ There is a function called 'refreshWorkspaces()' that refreshes this
 list. This minimizes REST calls for minial things to the server.
 """
 
-import requests
+import requests, json
 
 class GsInstance(object):
     url = None
@@ -34,16 +34,57 @@ class GsInstance(object):
                                              
         workspaces = requests.get(self.url+"/rest/workspaces.json", \
                                   auth=(self.adminUser, self.adminPass), \
-                                  headers={"Accept": "text/json"}).json() \
-                                  ["workspaces"]["workspace"]
-                                  
+                                  headers={"Accept": "text/json"}).json()
+                                                                                
         layers = requests.get(self.url+"/rest/layers.json", \
                               auth=(self.adminUser, self.adminPass), \
-                              headers={"Accept": "text/json"}).json()["layers"]["layer"]
+                              headers={"Accept": "text/json"}).json()
+                              
+        self.workspaces = {w["name"]:w["href"] for w in workspaces["workspaces"]["workspace"]} \
+            if workspaces["workspaces"]<>"" else []
+        self.layers = {l["name"]:l["href"] for l in layers["layers"]["layer"]} \
+            if layers["layers"]<>"" else []
 
-        self.workspaces = {w["name"]:w["href"] for w in workspaces}
-        self.layers = {l["name"]:l["href"] for l in layers}
-                    
+    def putSettings(self):
+        """Puts settings to the server by REST."""
+        return requests.put(self.url+"/rest/settings.json", \
+                            auth=(self.adminUser, self.adminPass), \
+                            headers={"Content-type": "text/json"}, \
+                            data=json.dumps(self.settings))
+
+    def putContact(self):
+        """Puts contact to the server by REST."""
+        return requests.put(self.url+"/rest/settings/contact.json", \
+                            auth=(self.adminUser, self.adminPass), \
+                            headers={"Content-type": "text/json"}, \
+                            data=json.dumps(self.contact))
+        
+    def writeToJson(self, destination="./", fileNames=["GsInstanceSettings", "GsInstanceContact"]):
+        """Writes settings and contact to files."""
+        # Disable data item "metadata". It is buggy to redeploy
+        toWrite = self.settings
+        
+        if "metadata" in toWrite["global"]["settings"]:
+            del toWrite["global"]["settings"]["metadata"]
+        
+        f = open(destination+fileNames[0], "w")
+        f.write(json.dumps(toWrite, sort_keys=True, indent=4, separators=(",",": ")))
+        f.close()
+
+        f = open(destination+fileNames[1], "w")
+        f.write(json.dumps(self.contact, sort_keys=True, indent=4, separators=(",",": ")))
+        f.close()
+
+    def readFromJson(self, destination="./", fileNames=["GsInstanceSettings", "GsInstanceContact"]):
+        """Reads settings and contact from files."""
+        f = open(destination+fileNames[0], "r")
+        self.settings = json.loads(f.read())
+        f.close()
+        
+        f = open(destination+fileNames[1], "r")
+        self.contact = json.loads(f.read())
+        f.close()
+        
     def getWorkspaceNames(self):
         return self.workspaces.keys()
                                        
