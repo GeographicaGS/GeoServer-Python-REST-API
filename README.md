@@ -16,3 +16,6 @@ TODO
 - Document current version (v0.1).
 
 - Make the API more coherent between objects, revise terminology.
+
+Known Issues and Caveats
+========================

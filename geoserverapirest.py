@@ -9,6 +9,7 @@ list. This minimizes REST calls for minial things to the server.
 import requests, json
 
 class GsInstance(object):
+    """This class represents a top level GeoServer instance."""
     url = None
     adminUser = None
     adminPass = None
