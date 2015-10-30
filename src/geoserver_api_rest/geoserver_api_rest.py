@@ -1,30 +1,53 @@
 """
-Philosophy: get certain, small information of objects, make a single
-call and store the information in members. For example, when created,
-GeoServerInstance caches the list of available workspaces in a member.
-There is a function called 'refreshWorkspaces()' that refreshes this
-list. This minimizes REST calls for minial things to the server.
+The underlying philosophy of the API is to get small bits of information
+of objects, make a single call and store the information in members.
+For example, when created, GeoServerInstance caches the list of available
+workspaces in a member.  There is a function called 'refreshWorkspaces()'
+that refreshes this list. This minimizes REST calls for minial things to the server.
 """
 
 import requests, json
 
 class GsInstance(object):
     """This class represents a top level GeoServer instance."""
+    
     url = None
+    """URL of the GeoServer."""
     adminUser = None
+    """Administration user of GeoServer."""
     adminPass = None
+    """Password for administration user of GeoServer."""
     workspaces = None
+    """List of workspaces present in GeoServer."""
     settings = None
+    """Settings of GeoServer."""
     contact = None
+    """Contact information of GeoServer."""
     layers = None
+    """List of layers present in GeoServer."""
             
-    def __init__(self, url, adminUser, adminPass):
+    def __init__(self, url, adminUser="admin", adminPass="geoserver"):
+        """The constructor will fetch automatically initial information
+        from the GeoServer concerning settings, contact, workspaces,
+        and layers and will store this info in members.
+
+        :param url: URL of GeoServer to connect to.
+        :type url: String
+        :param adminUser: Administration user name.
+        :type adminUser: String
+        :param adminPass: Administration user password.
+        :type adminPass: String
+        """
+        
         self.url = url
         self.adminUser = adminUser
         self.adminPass = adminPass
         self.refresh()
 
     def refresh(self):
+        """Will fetch again information regarding settings, contact, workspaces,
+        and layers from the instance."""
+        
         self.settings = requests.get(self.url+"/rest/settings.json", \
                                      auth=(self.adminUser, self.adminPass), \
                                      headers={"Accept": "text/json"}).json()
@@ -47,21 +70,34 @@ class GsInstance(object):
             if layers["layers"]<>"" else []
 
     def putSettings(self):
-        """Puts settings to the server by REST."""
+        """Puts settings information to the server by REST."""
+        
         return requests.put(self.url+"/rest/settings.json", \
                             auth=(self.adminUser, self.adminPass), \
                             headers={"Content-type": "text/json"}, \
                             data=json.dumps(self.settings))
 
     def putContact(self):
-        """Puts contact to the server by REST."""
+        """Puts contact information to the server by REST."""
+        
         return requests.put(self.url+"/rest/settings/contact.json", \
                             auth=(self.adminUser, self.adminPass), \
                             headers={"Content-type": "text/json"}, \
                             data=json.dumps(self.contact))
         
     def writeToJson(self, destination="./", fileNames=["GsInstanceSettings", "GsInstanceContact"]):
-        """Writes settings and contact to files."""
+        """Writes settings and contact to JSON files.
+
+        :param destination: Destination folder to put the files in. Must end in /.
+        :type destination: String
+        :param fileNames: Names for settings and contact files, respectively.
+        :type fileNames: A list of two strings
+
+        .. todo:: Destination folder may not end in /.
+           
+        .. todo:: Separate this method in two, one for each file.
+        """
+        
         # Disable data item "metadata". It is buggy to redeploy
         toWrite = self.settings
         
@@ -77,7 +113,17 @@ class GsInstance(object):
         f.close()
 
     def readFromJson(self, destination="./", fileNames=["GsInstanceSettings", "GsInstanceContact"]):
-        """Reads settings and contact from files."""
+        """Reads settings and contact from JSON files.
+
+        :param destination: Source folder to read files from. May end in /.
+        :type destination: String
+        :param fileNames: File names for files.
+        :type fileNames: A list of two strings
+
+        .. todo:: Destination folder may not end in /.
+           
+        .. todo:: Separate this method in two, one for each file.
+        """
         f = open(destination+fileNames[0], "r")
         self.settings = json.loads(f.read())
         f.close()
@@ -87,9 +133,21 @@ class GsInstance(object):
         f.close()
         
     def getWorkspaceNames(self):
+        """Returns a list with workspace names.
+
+        :return: A list with workspace names.
+        :rtype: List
+        """
+        
         return self.workspaces.keys()
                                        
     def getLayerNames(self):
+        """Returns a list with layer names.
+
+        :return: A list with layer names.
+        :rtype: List
+        """
+
         return self.layers.keys()
 
 
