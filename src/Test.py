@@ -1,4 +1,4 @@
-import geoserverapirest as gs
+import geoserverapirest.core as gs
 reload(gs)
 
 # Test for GeoServer cloning
