@@ -3,7 +3,7 @@ db:
   ports:
     - "5435:5432"
 
-geoserver:
+sourcegeoserver:
   image: geographica/geoserver:v2.6.2
   ports:
     - "8084:8080"
