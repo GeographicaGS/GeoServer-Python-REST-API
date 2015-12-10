@@ -1,2 +1,3 @@
 geoserverapirest.pyc
 *.pyc
+.cache

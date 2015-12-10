@@ -16,8 +16,9 @@ gsinsSource = gs.GsInstance("http://localhost:8084/geoserver", "admin", "geoserv
 # gsinsDestination.putSettings()
 # gsinsDestination.putContact()
 
-print gsinsSource.getWorkspaceNames()
-print gsinsSource.getStyleNames()
-sld = gsinsSource.getStyleSld("point")
-r = gsinsSource.createNewStyleSld("newpoint3242", sld)
+# print gsinsSource.getWorkspaceNames()
+# print gsinsSource.getStyleNames()
+# sld = gsinsSource.getStyleSld("point")
+# r = gsinsSource.createNewStyleSld("newpoint3242", sld)
 
+print gsinsSource.getNamespaceNames()

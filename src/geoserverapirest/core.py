@@ -8,6 +8,8 @@ of objects, make a single call and store the information in members.
 For example, when created, GeoServerInstance caches the list of available
 workspaces in a member.  There is a function called 'refreshWorkspaces()'
 that refreshes this list. This minimizes REST calls for minial things to the server.
+
+^^^Deprecate, rewrite 
 """
 
 import requests, json
@@ -120,7 +122,7 @@ class GsInstance(object):
 
         .. todo:: Manage return codes
         """
-        creationXml = '<style><name>%s</name><filename>%s.sld</filename></style>' % \
+        creationXml = "<style><name>%s</name><filename>%s.sld</filename></style>" % \
           (name, name)
         
         r = requests.post("%s/rest/styles.sld" % (self.url), \
@@ -205,13 +207,245 @@ class GsInstance(object):
         return r.status_code
 
 
+    def getNamespaceNames(self):
+        """
+        Returns a list with existing namespace names.
+
+        :return: List with existing namespace names.
+        :rtype: List
+
+        .. todo:: handle return types
+
+        .. todo:: run tests with a full empty GeoServer
+        """
+        r = requests.get("%s/rest/namespaces.json" % self.url, \
+                         auth=(self.user, self.passwd)).json()
+
+        if r["namespaces"]=="":
+            return []
+        else:
+            return [i["name"] for i in r["namespaces"]["namespace"]]
+
+
+    def createPostGisDataStore(self, workspace, name, host, port, user, passwd, \
+                               database, schema):
+        """
+        Creates a new PostGIS datastore in a given workspace.
+
+        :param workspace: Name of the workspace to create the datastore into.
+        :type workspace: String
+        :param name: Name for the new datastore.
+        :type name: String
+        :param host: Host of the PostGIS.
+        :type host: String
+        :param port: Port of the PostGIS.
+        :type port: String
+        :param user: User of the PostGIS.
+        :type user: String
+        :param passwd: Password of the PostGIS.
+        :type passwd: String
+        :param database: Database to connect to.
+        :type database: String
+
+        .. todo:: Check return codes.
+        .. todo:: A lot of options left on default. Configure.
+        """
+        creationDict = \
+        {u'dataStore':
+          {u'connectionParameters':
+            {u'entry': [
+              {u'@key': u'port', u'$': port},
+              {u'@key': u'passwd', u'$': passwd},
+              {u'@key': u'dbtype', u'$': u'postgis'},
+              {u'@key': u'host', u'$': host},
+              {u'@key': u'encode functions', u'$': u'false'},
+              {u'@key': u'validate connections', u'$': u'false'},
+              {u'@key': u'Support on the fly geometry simplification', u'$': u'false'},
+              {u'@key': u'database', u'$': database},
+              {u'@key': u'namespace', u'$': u'http://%s' % workspace},
+              {u'@key': u'schema', u'$': schema},
+              {u'@key': u'Test while idle', u'$': u'false'},
+              {u'@key': u'Loose bbox', u'$': u'false'},
+              {u'@key': u'Expose primary keys', u'$': u'false'},
+              {u'@key': u'create database', u'$': u'false'},
+              {u'@key': u'preparedStatements', u'$': u'false'},
+              {u'@key': u'Estimated extends', u'$': u'false'},
+              {u'@key': u'user', u'$': user}]
+            },
+            u'name': name,
+            u'enabled': True,
+            u'workspace': {
+              u'href': u'http://localhost:8084/geoserver/rest/workspaces/%s.json' % workspace,
+              u'name': workspace
+            },
+            u'_default': False,
+            u'type': u'PostGIS'}}
+
+        r = requests.post("%s/rest/workspaces/%s/datastores.json" % (self.url, workspace), \
+                          auth=(self.user, self.passwd), \
+                          headers={"Content-Type": "text/json"}, \
+                          data=json.dumps(creationDict))
+                          
+        return r.status_code
+
+
+    def deleteDatastore(self, workspace, name):
+        """
+        Deletes a DataStore by workspace and name.
+
+        :param workspace: Name of the workspace the DataStore belongs to.
+        :type workspace: String
+        :param name: Name of the DataStore to be deleted.
+        :type name: String
+
+        .. todo: check for additional parameters.
+        """
+        r = requests.delete("%s/rest/workspaces/%s/datastores/%s" % \
+                            (self.url, workspace, name), \
+                            auth=(self.user, self.passwd))
+        return r.status_code
+                            
+
+    def createFeatureTypeFromPostGisTable(self, workspace, datastore, table, name, title):
+        """
+        Creates a feature type from an existing PostGIS table.
+
+        :param workspace: Name of the workspace the DataStore belongs to.
+        :type workspace: String
+        :param datastore: Name of the DataStore the FeatureType will be created in.
+        :type datastore: String
+        :param name: Name of the new FeatureType.
+        :type name: String
+
+        .. todo:: change to JSON creation, check get for feature types.
+        .. todo:: a lot of items has been purged. Check test_15-Query.py for the full dict response of a get feature type.
+        """
+
+        creationDict = \
+        {u'featureType':
+          {u'circularArcPresent': False,
+          u'name': name,
+          u'title': title,
+          u'enabled': True,
+          u'namespace': {
+            u'href': u'http://localhost:8084/geoserver/rest/namespaces/%s.json' % workspace,
+            u'name': workspace
+          },
+          u'projectionPolicy': u'FORCE_DECLARED',
+          u'numDecimals': 0,
+          u'nativeName': table,
+          u'maxFeatures': 0,
+          u'store': {
+            u'href': u'http://localhost:8084/geoserver/rest/workspaces/new_workspace/datastores/%s.json' % datastore,
+            u'name': datastore,
+            u'@class': u'dataStore'},
+          u'overridingServiceSRS': False}}
+        
+        r = requests.post("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
+                          (self.url, workspace, datastore), \
+                          auth=(self.user, self.passwd), \
+                          headers={"Content-Type": "text/json"}, \
+                          data=json.dumps(creationDict))
+
+        import pytest
+        pytest.set_trace()
+                          
+        return r.status_code
+
+
+    def getDataStoreNames(self, workspace):
+        """
+        Returns the list of names of DataStores available for a workspace.
+
+        :param workspace: Name of the workspace to search.
+        :type workspace: String
+        """
+
+        r = requests.get("%s/rest/workspaces/%s/datastores.json" % \
+                         (self.url, workspace), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"}).json()
+
+        if r["dataStores"]=="":
+            return []
+        else:
+            return [i["name"] for i in r["dataStores"]["dataStore"]]
+    
+
+    def getFeatureTypesNames(self, workspace, datastore):
+        """
+        Gets a list with names of Feature Types in a given DataStore and Workspace.
+
+        :param workspace: Name of the workspace.
+        :type workspace: String
+        :param datastore: Name of the DataStore.
+        :type datastore: String
+
+        .. todo:: handle errors in requests
+        """
+        r = requests.get("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
+                         (self.url, workspace, datastore), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"}).json()
+
+        if r["featureTypes"]=="":
+            return []
+        else:
+            return [i["name"] for i in r["featureTypes"]["featureType"]]
+
+
+    def getFeatureType(self, workspace, datastore, name):
+        """
+        Gets Dict details of a DataStore.
+
+        :param workspace: Name of the workspace.
+        :type workspace: String
+        :param datastore: Name of the datastore.
+        :type datastore: String
+        :param name: Name of the feature type.
+        :type name: String
+
+        .. todo:: handle different request answers.
+        """
+        
+        r = requests.get("%s/rest/workspaces/%s/datastores/%s/featuretypes/%s.json" % \
+                         (self.url, workspace, datastore, name), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"})
+
+        return r.json()
+
+        
+    def getDataStore(self, workspace, datastore):
+        """
+        Gets Dict details of a DataStore.
+
+        :param workspace: Name of the workspace.
+        :type workspace: String
+        :param datastore: Name of the datastore.
+        :type datastore: String
+
+        .. todo:: handle different request answers.
+        """
+        
+        r = requests.get("%s/rest/workspaces/%s/datastores/%s.json" % \
+                         (self.url, workspace, datastore), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"})
+
+        return r.json()
 
 
 
 
 
 
+class GsException(Exception):
+    def __init__(self, value):
+        self.value = value
 
+    def __str__(self):
+        return "GeoServer REST exception: %s" % (self.value)
 
 
 
@@ -511,115 +745,3 @@ class GsInstance(object):
 #                                   auth=(self.gsInstance.user, \
 #                                         self.gsInstance.passwd), \
 #                                   headers={"Accept": "text/json"}).json()
-            
-
-# class GsFeatureType(object):
-#     gsInstance = None
-#     name = None
-#     url = None
-#     nativeName = None
-#     featureTypeType = None
-#     featureTypeSubtype = None
-#     info = None
-#     title = None
-#     store = None
-#     metadata = None
-#     metadataKeys = None
-    
-#     def __init__(self, url, gsInstance):
-#         self.url = url
-#         self.gsInstance = gsInstance
-#         self.metadata = {}
-#         self.refresh()
-        
-#     def refresh(self):
-#         self.info = requests.get(self.url, \
-#                                  auth=(self.gsInstance.user, \
-#                                        self.gsInstance.passwd), \
-#                                  headers={"Accept": "text/json"}).json()
-#         self.featureTypeType = self.info.keys()[0]
-#         value = self.info.values()[0]
-#         self.name = value["name"]
-#         self.title = value["title"]
-#         self.nativeName = value["nativeName"]
-#         self.store = value["store"]
-
-#         if "metadata" in value.keys():
-#             self.metadata = [value["metadata"]["entry"]] \
-#                 if not isinstance(value["metadata"]["entry"], list) \
-#                 else value["metadata"]["entry"]
-#             self.metadataKeys = [i["@key"] for i in self.metadata]
-
-#         if self.featureTypeType=="featureType":
-#             if self.metadataKeys is not None:
-#                 if "JDBC_VIRTUAL_TABLE" in self.metadataKeys:
-#                     self.featureTypeSubtype = "VirtualTable"
-#                 else:
-#                     self.featureTypeSubtype = "PlainTable"
-#             else:
-#                 self.featureTypeSubtype = "PlainTable"
-
-#     def getVirtualSql(self):
-#         if self.featureTypeSubtype=="VirtualTable":
-#             meta = [i for i in self.metadata if i["@key"]=="JDBC_VIRTUAL_TABLE"][0]
-#             return meta["virtualTable"]["sql"]
-#         else:
-#             return None
-
-
-
-# class GsStyle(object):
-#     """
-#     Style object.
-#     """
-
-#     _name = None
-#     """Style name."""
-#     _sld = None
-#     """Style SLD."""
-    
-#     def __init__(self, name, sld=None):
-#         """
-#         A style object.
-
-#         :param name: Style name inside GeoServer.
-#         :type name: String
-#         :param sld: XML SLD definition for style.
-#         :type sld: String
-
-#         .. todo:: validate XML
-#         """
-#         self._name = name
-#         self._sld = sld
-
-#     @property
-#     def name(self):
-#         """
-#         Name of the style.
-
-#         :return: The name of the style.
-#         :rtype: String
-#         """
-#         return self._name
-
-#     @property
-#     def sld(self):
-#         """
-#         XML SLD for the style.
-
-#         :return: The XML SLD for the style.
-#         :rtype: String
-#         """
-#         return self._sld
-        
-    
-    
-# class GsException(Exception):
-#     def __init__(self, value):
-#         self.value = value
-
-#     def __str__(self):
-#         return "GeoServer REST exception: %s" % (self.value)
-
-
-
