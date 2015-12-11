@@ -1,18 +1,14 @@
-
-        
-
 #!/usr/bin/env python
 # coding=UTF-8
 
-# import unittest as t, time
 import geoserverapirest.core as gs
 reload(gs)
 
 """
-Requires two GeoServers for testing. Check Docker-Compose.
+Requires the Docker-Compose to be up.
 """
 
-class TestDeletion:
+class TestDeletion(object):
     """
     Deletion tests.
     """
@@ -39,43 +35,3 @@ class TestDeletion:
     def test_deleteWorkspace(self):
         r = self.gsi.deleteWorkspace("new_workspace")
         assert r==200
-
-
-
-
-
-
-
-
-                
-                         
-# Class TestWorkspace(t.TestCase):
-#     """
-#     Tests workspaces.
-#     """
-
-#     def setUp(self):
-#         self.workspace = gs.GsWorkspace("new_workspace")
-
-#     def test_create(self):
-#         self.assertIsInstance(self.workspace, gs.GsWorkspace)
-
-    
-                                 
-
-
-        
-# class TestLayers(t.TestCase):
-#     """
-#     Tests layers.
-#     """
-
-#     def setUp(self):
-#         self.layer = gs.GsLayer("new_layer")
-
-#     def test_create(self):
-#         self.assertIsInstance(self.layer, gs.GsLayer)
-
-#     def test_getLayerName(self):
-#         self.assertEqual(self.layer.name, "new_layer")
-        

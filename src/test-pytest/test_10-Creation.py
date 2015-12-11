@@ -79,7 +79,8 @@ class TestCreation:
     def test_createFeatureType(self):
         r = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
                                                    "new_postgis_ds", "data.municipio", \
-                                                   "municipio", u"Municipios de Andalucía")
+                                                   "municipio", u"Municipios de Andalucía", \
+                                                   "postgres")
         
         assert r==201
 

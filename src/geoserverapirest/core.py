@@ -12,7 +12,7 @@ that refreshes this list. This minimizes REST calls for minial things to the ser
 ^^^Deprecate, rewrite 
 """
 
-import requests, json
+import requests, json, ext.postgis
 
 class GsInstance(object):
     """
@@ -306,7 +306,8 @@ class GsInstance(object):
         return r.status_code
                             
 
-    def createFeatureTypeFromPostGisTable(self, workspace, datastore, table, name, title):
+    def createFeatureTypeFromPostGisTable(self, workspace, datastore, table, name, title, \
+                                          pgpassword):
         """
         Creates a feature type from an existing PostGIS table.
 
@@ -316,9 +317,12 @@ class GsInstance(object):
         :type datastore: String
         :param name: Name of the new FeatureType.
         :type name: String
+        :param pgpassword: Password for the PostGIS the DataStore references. This is so because we can't get the password from the GeoServer DataStore yet.
+        :type pgpassword: String
 
-        .. todo:: change to JSON creation, check get for feature types.
-        .. todo:: a lot of items has been purged. Check test_15-Query.py for the full dict response of a get feature type.
+        .. todo:: Change to JSON creation, check get for feature types.
+        .. todo:: A lot of items has been purged. Check test_15-Query.py for the full dict response of a get feature type.
+        .. todo:: try to get the DataStore connection password from GeoServer.
         """
 
         creationDict = \
@@ -340,19 +344,56 @@ class GsInstance(object):
             u'name': datastore,
             u'@class': u'dataStore'},
           u'overridingServiceSRS': False}}
+
+        # Get datastore data
+        ds = self.getConnDataFromPostGisDataStore(workspace, datastore)
+        
+        # Add attributes
+        pgi = ext.postgis.GsPostGis(ds["host"], ds["port"], ds["database"], ds["user"], pgpassword)
+
+        creationDict["featureType"]["attributes"] = pgi.getFields["attributes"]
+
+        import pytest
+        pytest.set_trace()
         
         r = requests.post("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
                           (self.url, workspace, datastore), \
                           auth=(self.user, self.passwd), \
                           headers={"Content-Type": "text/json"}, \
                           data=json.dumps(creationDict))
-
-        import pytest
-        pytest.set_trace()
                           
         return r.status_code
 
 
+    def getConnDataFromPostGisDataStore(self, workspace, datastore):
+        """
+        Returns a dictionary with connection info for the given PostGIS DataStore.
+
+        It can't return yet the password.
+
+        :param workspace: Workspace name.
+        :type workspace: String
+        :param datastore: DataStore name.
+        :type datastore: String
+
+        .. todo:: Make test for retrieving information from an empty GeoServer.
+        .. todo:: Make test for retrieving information from a shut down GeoServer.
+        .. todo:: Enable at GsInstance level a cache to store PostGIS DataStore passwords.
+        .. todo:: Check if not a PostGIS DataStore.
+        """
+
+        r = self.getDataStore(workspace, datastore)["dataStore"]["connectionParameters"]["entry"]
+
+        out = \
+          {"port": r[0]["$"],
+           "host": r[3]["$"],
+           "database": r[7]["$"],
+           "schema": r[9]["$"],
+           "user": r[16]["$"]}
+        
+        return out
+    
+    
     def getDataStoreNames(self, workspace):
         """
         Returns the list of names of DataStores available for a workspace.
@@ -436,10 +477,7 @@ class GsInstance(object):
         return r.json()
 
 
-
-
-
-
+                
 class GsException(Exception):
     def __init__(self, value):
         self.value = value

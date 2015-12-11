@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-# import unittest as t, time
 import geoserverapirest.core as gs
 reload(gs)
 
@@ -74,7 +73,20 @@ class TestQuery:
                        u'workspace': {u'href': u'http://localhost:8084/geoserver/rest/workspaces/new_workspace.json', u'name': u'new_workspace'},
                        u'_default': False,
                        u'type': u'PostGIS'}}
-        
+
+
+    def test_getConnDataFromPostGisDataStore(self):
+        r = self.gsi.getConnDataFromPostGisDataStore("new_workspace", "new_postgis_ds")
+
+        expected = \
+          {"port": "5432",
+           "host": "db",
+           "database": "test_geoserver",
+           "schema": "data",
+           "user": "postgres"}
+           
+        assert r==expected
+                
 
     def test_queryGetFeatureType(self):
         r = self.gsi.getFeatureType("new_workspace", "new_postgis_ds", "municipio")
