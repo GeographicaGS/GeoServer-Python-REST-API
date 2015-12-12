@@ -20,9 +20,10 @@ destinationgeoserver:
 python-dev:
   image: geographica/python_development:2.7.11
   environment:
-    - PIP_PACKAGES=ipython;psycopg2
+    - PIP_PACKAGES=ipython;psycopg2;pytest;requests
     - CONTAINER_USER_UID=1000
     - CONTAINER_GROUP_ID=1000
+    - ADDTOPYPATH=/GeoServer-Python-REST-API/src
   volumes:
     - /home/git/GeoServer-Python-REST-API/:/GeoServer-Python-REST-API/
   links:

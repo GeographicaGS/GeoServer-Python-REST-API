@@ -6,6 +6,8 @@ reload(pg)
 
 """
 Requires the Docker-Compose to be up.
+
+THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
 """
 
 class TestExtPostGis:
@@ -14,7 +16,7 @@ class TestExtPostGis:
     """
     
     def setup(self):
-        self.pgi = pg.GsPostGis("localhost", "5435", "test_geoserver", \
+        self.pgi = pg.GsPostGis("db", "5432", "test_geoserver", \
                                 "postgres", "postgres")
                            
 

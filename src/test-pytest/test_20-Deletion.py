@@ -6,6 +6,8 @@ reload(gs)
 
 """
 Requires the Docker-Compose to be up.
+
+THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
 """
 
 class TestDeletion(object):
@@ -14,7 +16,7 @@ class TestDeletion(object):
     """
 
     def setup(self):
-        self.gsi = gs.GsInstance("http://localhost:8084/geoserver", "admin", "geoserver")
+        self.gsi = gs.GsInstance("http://sourcegeoserver:8080/geoserver", "admin", "geoserver")
 
         
     def test_deleteStyle(self):
@@ -23,7 +25,7 @@ class TestDeletion(object):
 
 
     def test_deleteFeatureType(self):
-        r = self.gsi.deleteFeatureType("new_featuretype")
+        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", "municipio", recurse=True)
         assert r==200
         
 

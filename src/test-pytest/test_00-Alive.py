@@ -7,6 +7,8 @@ reload(gs)
 
 """
 Requires two GeoServers for testing. Check Docker-Compose.
+
+THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
 """
 
 class TestAlive:
@@ -15,7 +17,7 @@ class TestAlive:
     """
 
     def setup(self):
-        self.gsi = gs.GsInstance("http://localhost:8084/geoserver", "admin", "geoserver")
+        self.gsi = gs.GsInstance("http://sourcegeoserver:8080/geoserver", "admin", "geoserver")
 
         
     def test_checkAliveA(self):
@@ -33,7 +35,7 @@ class TestAlive:
 
         
     def test_getUrl(self):
-        assert self.gsi.url=="http://localhost:8084/geoserver"
+        assert self.gsi.url=="http://sourcegeoserver:8080/geoserver"
 
         
     def test_getUser(self):

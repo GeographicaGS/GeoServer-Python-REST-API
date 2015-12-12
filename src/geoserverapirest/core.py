@@ -12,7 +12,7 @@ that refreshes this list. This minimizes REST calls for minial things to the ser
 ^^^Deprecate, rewrite 
 """
 
-import requests, json, ext.postgis
+import requests, json, ext.postgis, ext.const
 
 class GsInstance(object):
     """
@@ -149,6 +149,7 @@ class GsInstance(object):
 
         .. todo:: check return types
         """
+        
         r = requests.delete("%s/rest/styles/%s" % (self.url, name), \
                             params={"purge": True}, \
                             auth=(self.user, self.passwd))
@@ -266,7 +267,7 @@ class GsInstance(object):
               {u'@key': u'schema', u'$': schema},
               {u'@key': u'Test while idle', u'$': u'false'},
               {u'@key': u'Loose bbox', u'$': u'false'},
-              {u'@key': u'Expose primary keys', u'$': u'false'},
+              {u'@key': u'Expose primary keys', u'$': u'true'},
               {u'@key': u'create database', u'$': u'false'},
               {u'@key': u'preparedStatements', u'$': u'false'},
               {u'@key': u'Estimated extends', u'$': u'false'},
@@ -275,7 +276,7 @@ class GsInstance(object):
             u'name': name,
             u'enabled': True,
             u'workspace': {
-              u'href': u'http://localhost:8084/geoserver/rest/workspaces/%s.json' % workspace,
+              u'href': u'http://%s/geoserver/rest/workspaces/%s.json' % (self.url, workspace),
               u'name': workspace
             },
             u'_default': False,
@@ -307,22 +308,31 @@ class GsInstance(object):
                             
 
     def createFeatureTypeFromPostGisTable(self, workspace, datastore, table, name, title, \
-                                          pgpassword):
+                                          pgpassword, srs, nativeCRS=None):
         """
         Creates a feature type from an existing PostGIS table.
+        ONLY SUPPORTS SINGLE GEOM TABLES BY NOW.
 
         :param workspace: Name of the workspace the DataStore belongs to.
         :type workspace: String
         :param datastore: Name of the DataStore the FeatureType will be created in.
         :type datastore: String
+        :param table: Name of the source table, without schema (schema is specified in the datastore).
+        :type table: String
         :param name: Name of the new FeatureType.
         :type name: String
         :param pgpassword: Password for the PostGIS the DataStore references. This is so because we can't get the password from the GeoServer DataStore yet.
         :type pgpassword: String
+        :param srs: Declared SRS. The default SRS the layer will be served on. Must be in the form "EPSG:XXXXX"
+        :type srs: String
+        :param nativeCRS: Native CRS EPSG. Defaults to None. Has to be explicitly given. In the future, if None, will be infered from PostGIS somehow. Must be in the form "EPSG:XXXXX"
+        :type nativeCRS: String
 
         .. todo:: Change to JSON creation, check get for feature types.
         .. todo:: A lot of items has been purged. Check test_15-Query.py for the full dict response of a get feature type.
         .. todo:: try to get the DataStore connection password from GeoServer.
+        .. todo:: support multigeom tables.
+        .. todo:: Infere EPSG from geometries or PostGIS geometry_columns.
         """
 
         creationDict = \
@@ -332,7 +342,7 @@ class GsInstance(object):
           u'title': title,
           u'enabled': True,
           u'namespace': {
-            u'href': u'http://localhost:8084/geoserver/rest/namespaces/%s.json' % workspace,
+            u'href': u'http://%s/geoserver/rest/namespaces/%s.json' % (self.url, workspace),
             u'name': workspace
           },
           u'projectionPolicy': u'FORCE_DECLARED',
@@ -340,7 +350,7 @@ class GsInstance(object):
           u'nativeName': table,
           u'maxFeatures': 0,
           u'store': {
-            u'href': u'http://localhost:8084/geoserver/rest/workspaces/new_workspace/datastores/%s.json' % datastore,
+            u'href': u'http://%s/geoserver/rest/workspaces/%s/datastores/%s.json' % (self.url, workspace, datastore),
             u'name': datastore,
             u'@class': u'dataStore'},
           u'overridingServiceSRS': False}}
@@ -351,17 +361,18 @@ class GsInstance(object):
         # Add attributes
         pgi = ext.postgis.GsPostGis(ds["host"], ds["port"], ds["database"], ds["user"], pgpassword)
 
-        creationDict["featureType"]["attributes"] = pgi.getFields["attributes"]
-
-        import pytest
-        pytest.set_trace()
+        creationDict["featureType"]["attributes"] = pgi.getFields(ds["schema"], table)["attributes"]
+        pgi.close()
+        
+        creationDict["featureType"]["nativeCRS"] = ext.const.epsg[nativeCRS]
+        creationDict["featureType"]["srs"] = srs
         
         r = requests.post("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
                           (self.url, workspace, datastore), \
                           auth=(self.user, self.passwd), \
                           headers={"Content-Type": "text/json"}, \
                           data=json.dumps(creationDict))
-                          
+                                                    
         return r.status_code
 
 
@@ -385,11 +396,11 @@ class GsInstance(object):
         r = self.getDataStore(workspace, datastore)["dataStore"]["connectionParameters"]["entry"]
 
         out = \
-          {"port": r[0]["$"],
-           "host": r[3]["$"],
-           "database": r[7]["$"],
-           "schema": r[9]["$"],
-           "user": r[16]["$"]}
+          {"port": self._getAmpKey(r, "port"),
+           "host": self._getAmpKey(r, "host"),
+           "database": self._getAmpKey(r, "database"),
+           "schema": self._getAmpKey(r, "schema"),
+           "user": self._getAmpKey(r, "user")}
         
         return out
     
@@ -467,6 +478,7 @@ class GsInstance(object):
         :type datastore: String
 
         .. todo:: handle different request answers.
+        .. todo:: document return for all functions.
         """
         
         r = requests.get("%s/rest/workspaces/%s/datastores/%s.json" % \
@@ -477,6 +489,44 @@ class GsInstance(object):
         return r.json()
 
 
+    def deleteFeatureType(self, workspace, datastore, featuretype, recurse=False):
+        """
+        Deletes a feature type.
+
+        :param workspace: Name of the workspace the feature type belongs to.
+        :type workspace: String
+        :param datastore: Name of the datastore the feature type belongs to.
+        :type datastore: String
+        :param featuretype: Name of the feature type.
+        :type featuretype: String
+        :return: The status code of the delete request.
+        :rtype: Integer
+        """
+
+        r = requests.delete("%s/rest/workspaces/%s/datastores/%s/featuretypes/%s" % \
+                            (self.url, workspace, datastore, featuretype), \
+                            params={"recurse": recurse}, \
+                            auth=(self.user, self.passwd))
+
+        return r.status_code
+
+
+    def _getAmpKey(self, pairsDictList, key):
+        """
+        Searchs in a list of Dict pairs in the GeoServer form {"@key": "a", "$": "b"} the
+        value of the given key.
+
+        :param pairsDictList: The list of dictionaries containing the key/value pairs.
+        :type: List
+        :param key: The key to be searched in the "@key" items.
+        :type: String
+        """
+
+        r = [i["$"] for i in pairsDictList if i["@key"]==key]
+
+        return r[0]
+
+    
                 
 class GsException(Exception):
     def __init__(self, value):
@@ -489,297 +539,3 @@ class GsException(Exception):
 
 
 
-
-
-
-
-                
-
-        
-#     # def refresh(self):
-#     #     """Will fetch again information regarding settings, contact, workspaces,
-#     #     and layers from the instance.
-
-#     #     Deprecate!!!
-#     #     """
-        
-#     #     self.settings = requests.get(self.url+"/rest/settings.json", \
-#     #                                  auth=(self.user, self.passwd), \
-#     #                                  headers={"Accept": "text/json"}).json()
-
-#     #     self.contact = requests.get(self.url+"/rest/settings/contact.json", \
-#     #                                 auth=(self.user, self.passwd), \
-#     #                                 headers={"Accept": "text/json"}).json()
-                                                                                
-#     #     layers = requests.get(self.url+"/rest/layers.json", \
-#     #                           auth=(self.user, self.passwd), \
-#     #                           headers={"Accept": "text/json"}).json()
-                              
-#     #     self.workspaces = {w["name"]:w["href"] for w in workspaces["workspaces"]["workspace"]} \
-#     #         if workspaces["workspaces"]<>"" else []
-#     #     self.layers = {l["name"]:l["href"] for l in layers["layers"]["layer"]} \
-#     #         if layers["layers"]<>"" else []
-
-#     # def putSettings(self):
-#     #     """Puts settings information to the server by REST."""
-        
-#     #     return requests.put(self.url+"/rest/settings.json", \
-#     #                         auth=(self.user, self.passwd), \
-#     #                         headers={"Content-type": "text/json"}, \
-#     #                         data=json.dumps(self.settings))
-
-#     # def putContact(self):
-#     #     """Puts contact information to the server by REST."""
-        
-#     #     return requests.put(self.url+"/rest/settings/contact.json", \
-#     #                         auth=(self.user, self.passwd), \
-#     #                         headers={"Content-type": "text/json"}, \
-#     #                         data=json.dumps(self.contact))
-        
-#     # def writeToJson(self, destination="./", fileNames=["GsInstanceSettings", "GsInstanceContact"]):
-#     #     """Writes settings and contact to JSON files.
-
-#     #     :param destination: Destination folder to put the files in. Must end in /.
-#     #     :type destination: String
-#     #     :param fileNames: Names for settings and contact files, respectively.
-#     #     :type fileNames: A list of two strings
-
-#     #     .. todo:: Destination folder may not end in /.
-           
-#     #     .. todo:: Separate this method in two, one for each file.
-#     #     """
-        
-#     #     # Disable data item "metadata". It is buggy to redeploy
-#     #     toWrite = self.settings
-        
-#     #     if "metadata" in toWrite["global"]["settings"]:
-#     #         del toWrite["global"]["settings"]["metadata"]
-        
-#     #     f = open(destination+fileNames[0], "w")
-#     #     f.write(json.dumps(toWrite, sort_keys=True, indent=4, separators=(",",": ")))
-#     #     f.close()
-
-#     #     f = open(destination+fileNames[1], "w")
-#     #     f.write(json.dumps(self.contact, sort_keys=True, indent=4, separators=(",",": ")))
-#     #     f.close()
-
-#     # def readFromJson(self, destination="./", fileNames=["GsInstanceSettings", "GsInstanceContact"]):
-#     #     """Reads settings and contact from JSON files.
-
-#     #     :param destination: Source folder to read files from. May end in /.
-#     #     :type destination: String
-#     #     :param fileNames: File names for files.
-#     #     :type fileNames: A list of two strings
-
-#     #     .. todo:: Destination folder may not end in /.
-           
-#     #     .. todo:: Separate this method in two, one for each file.
-#     #     """
-#     #     f = open(destination+fileNames[0], "r")
-#     #     self.settings = json.loads(f.read())
-#     #     f.close()
-        
-#     #     f = open(destination+fileNames[1], "r")
-#     #     self.contact = json.loads(f.read())
-#     #     f.close()
-        
-#     # def getWorkspaceNames(self):
-#     #     """Returns a list with workspace names.
-
-#     #     :return: A list with workspace names.
-#     #     :rtype: List
-#     #     """
-
-#     #     workspaces = requests.get(self.url+"/rest/workspaces.json", \
-#     #                               auth=(self.user, self.passwd), \
-#     #                               headers={"Accept": "text/json"}).json()["workspaces"]["workspace"]
-
-                
-#     #     return [i["name"] for i in workspaces]
-
-#     # def getWorkspace(self, name):
-#     #     """Returns a GsWorkspace"""
-#     #     pass
-                                           
-#     # def getLayerNames(self):
-#     #     """Returns a list with layer names.
-
-#     #     :return: A list with layer names.
-#     #     :rtype: List
-#     #     """
-
-#     #     return self.layers.keys()
-
-
-
-        
-        
-
-
-        
-#     # def getStyleSld(self, name):
-#     #     """Returns the SLD as a string of a given style.
-
-#     #     :param name: Name of the style.
-#     #     :type name: String
-#     #     :return: a string containing the XML SLD definition of the style
-#     #     :rtype: String
-
-#     #     .. todo:: Create funtions to get styles in a Workspace (in the workspace class)
-#     #     """
-        
-#     #     r = requests.get("%s/rest/styles/%s.sld" % (self.url, name), \
-#     #                      auth=(self.user, self.passwd), \
-#     #                      headers={"Accept": "text/xml"}).content
-
-#     #     return r
-
-#     # def createWorkspace(self, name):
-#     #     """Creates a new workspace.
-
-#     #     :param name: Name of the new workspace.
-#     #     :type name: String
-
-#     #     .. todo:: handle return type.
-#     #     """
-#     #     r = requests.get
-
-            
-# class GsLayer(object):
-#     """
-#     Layer object.
-#     """
-#     _name = None
-#     """Layer name."""
-    
-#     # _url = None
-#     # attribution = None
-#     # defaultStyle = None
-#     # resource = None
-#     # info = None
-#     # type = None
-#     # featureType = None
-    
-#     def __init__(self, name):
-#         """
-#         Defines a layer.
-
-#         :param name: Layer's name.
-#         :type name: String
-#         """
-#         self._name = name
-
-#     @property
-#     def name(self):
-#         """
-#         Name of layer.
-
-#         :return: Name of layer.
-#         :rtype: String
-#         """
-#         return self._name
-    
-    
-#     # def refresh(self):
-#     #     info = requests.get(self.url, \
-#     #                         auth=(self.gsInstance.user, \
-#     #                               self.gsInstance.passwd), \
-#     #                         headers={"Accept": "text/json"}).json()["layer"]
-#     #     self.info = info
-#     #     self.attribution = info["attribution"]
-#     #     self.name = info["name"]
-#     #     self.defaultStyle = info["defaultStyle"]
-#     #     self.resource = info["resource"]
-#     #     self.featureType = self.resource["href"]
-#     #     self.type = info["type"]
-
-                
-# class GsWorkspace(object):
-#     """
-#     Workspace object.
-#     """
-        
-#     _name = None
-#     """Workspace style."""
-#     # url = None
-#     # gsInstance = None
-#     # dataStores = None
-#     # wmsStores = None
-#     # coverageStores = None
-#     # settings = None
-#     # workspaceRoot = None
-#     # info = None
-
-#     def __init__(self, name):
-#         """
-#         A Workspace object.
-
-#         :param name: 
-#         self.url = url
-#         self.gsInstance = gsInstance
-#         # self.refresh()
-
-#     def refresh(self):
-#         self.info = requests.get(self.url, \
-#                                  auth=(self.gsInstance.user, \
-#                                        self.gsInstance.passwd), \
-#                                  headers={"Accept": "text/json"}).json()
-#         self.workspaceRoot = self.info.keys()[0]
-#         values = self.info.values()[0]
-#         self.name = values["name"]
-#         self.dataStores = values["dataStores"]
-#         self.wmsStores = values["wmsStores"]
-#         self.coverageStores = values["coverageStores"]
-#         settings = requests.get(self.url+"/settings.json", \
-#                                 auth=("admin", "geoserver"), \
-#                                 headers={"Accept": "text/json"})
-#         self.settings = settings.json() if settings.status_code<>401 else None
-
-
-# class GsDataStore(object):
-#     url = None
-#     gsInstance = None
-#     storeTypeRoot = None
-#     description = None
-#     default = None
-#     enabled = None
-#     info = None
-#     storeType = None
-#     itemsUrl = None
-#     connectionParameters = None
-#     items = None
-#     name = None
-#     workspace = None
-
-#     def __init__(self, url, gsInstance):
-#         self.url = url
-#         self.gsInstance = gsInstance
-#         self.refresh()
-        
-#     def refresh(self):
-#         self.info = requests.get(self.url, \
-#                                  auth=(self.gsInstance.user, \
-#                                        self.gsInstance.passwd), \
-#                                  headers={"Accept": "text/json"}).json() \
-
-#         self.storeTypeRoot = self.info.keys()[0]
-#         values = self.info.values()[0]
-#         self.itemsUrl = values["featureTypes"] \
-#           if self.storeTypeRoot=="dataStore" \
-#           else values["coverages"]
-#         self.name = values["name"]
-#         self.enabled = values["enabled"]
-#         self.workspace = values["workspace"]
-#         self.default = values["_default"]
-#         self.storeType = values["type"]
-#         self.description = values["description"] if "description" in values.keys() \
-#           else None
-                  
-#         self.connectionParameters = \
-#           {i["@key"]: i["$"] for i in values["connectionParameters"]["entry"]} \
-#           if self.storeTypeRoot=="dataStore" else None
-                
-#         self.items = requests.get(self.itemsUrl, \
-#                                   auth=(self.gsInstance.user, \
-#                                         self.gsInstance.passwd), \
-#                                   headers={"Accept": "text/json"}).json()

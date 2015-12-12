@@ -7,6 +7,8 @@ reload(gs)
 
 """
 Requires two GeoServers for testing. Check Docker-Compose.
+
+THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
 """
 
 class TestCreation:
@@ -60,7 +62,7 @@ class TestCreation:
             </NamedLayer>
           </StyledLayerDescriptor>
         """
-        self.gsi = gs.GsInstance("http://localhost:8084/geoserver", "admin", "geoserver")
+        self.gsi = gs.GsInstance("http://sourcegeoserver:8080/geoserver", "admin", "geoserver")
 
         
     def test_createWorkspace(self):
@@ -76,15 +78,15 @@ class TestCreation:
         assert r==201
 
 
-    def test_createFeatureType(self):
+    def test_createFeatureTypeFromPostGisTable(self):
         r = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
-                                                   "new_postgis_ds", "data.municipio", \
+                                                   "new_postgis_ds", "municipio", \
                                                    "municipio", u"Municipios de Andalucía", \
-                                                   "postgres")
+                                                   "postgres", "EPSG:25830", nativeCRS="EPSG:25830")
         
         assert r==201
 
-        
+                
     def test_createStyle(self):
         r = self.gsi.createStyle("new_style", self.sld)
         assert r==200
