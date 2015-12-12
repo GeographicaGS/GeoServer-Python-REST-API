@@ -16,3 +16,16 @@ destinationgeoserver:
     - "8085:8080"
   links:
     - db
+
+python-dev:
+  image: geographica/python_development:2.7.11
+  environment:
+    - PIP_PACKAGES=ipython;psycopg2
+    - CONTAINER_USER_UID=1000
+    - CONTAINER_GROUP_ID=1000
+  volumes:
+    - /home/git/GeoServer-Python-REST-API/:/GeoServer-Python-REST-API/
+  links:
+    - db
+    - sourcegeoserver
+    - destinationgeoserver
