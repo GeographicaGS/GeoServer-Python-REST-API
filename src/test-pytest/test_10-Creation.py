@@ -82,7 +82,7 @@ class TestCreation:
         r = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
                                                    "new_postgis_ds", "municipio", \
                                                    "municipio", u"Municipios de Andalucía", \
-                                                   "postgres", "25830", nativeCRS="25830")
+                                                   "postgres", 25830, nativeCRS=25830)
         
         assert r==201
 
@@ -95,8 +95,8 @@ class TestCreation:
                                                        "gid", "geom", "MultiPolygon", \
                                                        "municipios_sevilla", \
                                                        "Municipios de Sevilla", \
-                                                       "postgres", "25830", \
-                                                       nativeCRS="25830")
+                                                       "postgres", 25830, \
+                                                       nativeCRS=25830)
                                                        
         assert r==201
                 

@@ -8,6 +8,10 @@ reload(gs)
 Requires two GeoServers for testing. Check Docker-Compose.
 
 THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
+
+TODO: change name to some test to the name of the function being tested.
+
+TODO: clean a GeoServer and do tests on an empty on.
 """
 
 class TestQuery:
@@ -24,8 +28,8 @@ class TestQuery:
         assert set(r)==set([u"point", u"line", u"polygon", u"raster", u"new_style"])
 
 
-    def test_queryFeatureTypesNames(self):
-        r = self.gsi.getFeatureTypesNames("new_workspace", "new_postgis_ds")
+    def test_queryFeatureTypeNames(self):
+        r = self.gsi.getFeatureTypeNames("new_workspace", "new_postgis_ds")
         assert set(r)==set([u"municipio"])
 
 
