@@ -164,3 +164,32 @@ class TestQuery:
             assert i in r["attributes"]["attribute"]
 
 
+    def test_getLayerNames(self):
+        r = self.gsi.getLayerNames()
+        assert r==["municipio"]
+
+
+    def test_getLayer(self):
+        r = self.gsi.getLayer("municipio")
+
+        assert isinstance(r, dict)
+        assert "layer" in r.keys()
+
+        r = r["layer"]
+
+        assert set(r.keys())== \
+          set([u'styles', u'resource', u'name', u'opaque', u'defaultStyle', \
+               u'attribution', u'type', u'queryable'])
+
+        assert r["attribution"]=={"logoWidth":0,"logoHeight":0}
+
+        assert r["defaultStyle"]== \
+          {u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/polygon.json', u'name': u'polygon'}
+
+        assert r["resource"]== \
+          {u'href': u'http://sourcegeoserver:8080/geoserver/rest/workspaces/new_workspace/datastores/new_postgis_ds/featuretypes/municipio.json', u'name': u'municipio', u'@class': u'featureType'}
+
+        r = r["styles"]["style"]
+
+        for i in [{u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/polygon.json', u'name': u'polygon'}, {u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/line.json', u'name': u'line'}, {u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/point.json', u'name': u'point'}]:
+            assert i in r

@@ -82,12 +82,30 @@ class TestCreation:
         r = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
                                                    "new_postgis_ds", "municipio", \
                                                    "municipio", u"Municipios de Andalucía", \
-                                                   "postgres", "EPSG:25830", nativeCRS="EPSG:25830")
+                                                   "postgres", "25830", nativeCRS="25830")
         
         assert r==201
 
+
+    def test_createFeatureTypeFromPostGisQuery(self):
+        sql = """select * from data.municipio where "PROVINCIA"='Sevilla'"""
+        
+        r = self.gsi.createFeatureTypeFromPostGisQuery("new_workspace", \
+                                                       "new_postgis_ds", sql, \
+                                                       "gid", "geom", "MultiPolygon", \
+                                                       "municipios_sevilla", \
+                                                       "Municipios de Sevilla", \
+                                                       "postgres", "25830", \
+                                                       nativeCRS="25830")
+                                                       
+        assert r==201
                 
     def test_createStyle(self):
         r = self.gsi.createStyle("new_style", self.sld)
+        assert r==200
+
+
+    def test_updateLayer(self):
+        r = self.gsi.updateLayer("municipio", styles=["polygon", "line", "point"])
         assert r==200
 

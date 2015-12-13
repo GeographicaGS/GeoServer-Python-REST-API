@@ -321,6 +321,8 @@ class GsInstance(object):
         :type table: String
         :param name: Name of the new FeatureType.
         :type name: String
+        :param title: Title of the new Feature Type.
+        :type title: String
         :param pgpassword: Password for the PostGIS the DataStore references. This is so because we can't get the password from the GeoServer DataStore yet.
         :type pgpassword: String
         :param srs: Declared SRS. The default SRS the layer will be served on. Must be in the form "EPSG:XXXXX"
@@ -361,11 +363,11 @@ class GsInstance(object):
         # Add attributes
         pgi = ext.postgis.GsPostGis(ds["host"], ds["port"], ds["database"], ds["user"], pgpassword)
 
-        creationDict["featureType"]["attributes"] = pgi.getFields(ds["schema"], table)["attributes"]
+        creationDict["featureType"]["attributes"] = pgi.getFieldsFromTable(ds["schema"], table)["attributes"]
         pgi.close()
         
-        creationDict["featureType"]["nativeCRS"] = ext.const.epsg[nativeCRS]
-        creationDict["featureType"]["srs"] = srs
+        creationDict["featureType"]["nativeCRS"] = ext.const.epsg["EPSG:%s" % nativeCRS]
+        creationDict["featureType"]["srs"] = "EPSG:%s" % srs
         
         r = requests.post("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
                           (self.url, workspace, datastore), \
@@ -375,6 +377,156 @@ class GsInstance(object):
                                                     
         return r.status_code
 
+
+    def createFeatureTypeFromPostGisQuery(self, workspace, datastore, sql, keyColumn, geomColumn, \
+                                          geomType, name, title, pgpassword, srs, nativeCRS=None):
+        """
+        Creates a Feature Type from a query to a PostGIS.
+
+        :param workspace: Name of the workspace the DataStore belongs to.
+        :type workspace: String
+        :param datastore: Name of the DataStore the FeatureType will be created in.
+        :type datastore: String
+        :param sql: SQL to create the Feature Type.
+        :type sql: String
+        :param keyColumn: Name of the primary key column.
+        :type 
+        :param geomColumn: Name of the geometry column in the SQL.
+        :type geomColumn: String
+        :param geomType: Type of the geometry column in the SQL. Can be Polygon, MultiPolygon ...
+        :type geomType: String
+        :param name: Name of the new FeatureType.
+        :type name: String
+        :param title: Title of the new Feature Type.
+        :type title: String
+        :param pgpassword: Password for the PostGIS the DataStore references. This is so because we can't get the password from the GeoServer DataStore yet.
+        :type pgpassword: String
+        :param srs: Declared SRS. The default SRS the layer will be served on. Must be as the EPSG code alone.
+        :type srs: String
+        :param nativeCRS: Native CRS EPSG. Defaults to None. Has to be explicitly given. In the future, if None, will be infered from PostGIS somehow. Must be as the EPSG code alone.
+        :type nativeCRS: String
+
+        .. todo:: Change to JSON creation, check get for feature types.
+        .. todo:: A lot of items has been purged. Check test_15-Query.py for the full dict response of a get feature type.
+        .. todo:: try to get the DataStore connection password from GeoServer.
+        .. todo:: support multigeom tables.
+        .. todo:: Infere EPSG from geometries or PostGIS geometry_columns.
+        .. todo:: check all available geomType.
+        """
+
+
+
+
+#        {u'featureType':
+#         {u'circularArcPresent': False,
+
+                   # u'nativeBoundingBox': {u'minx': 102471.570069193, u'miny': 3987969.4688624, u'maxx': 619151.299977792, u'maxy': 4274175.62512184, u'crs': {u'$': u'EPSG:25830', u'@class': u'projected'}}
+
+         # , u'nativeCRS': {u'$': u'PROJCS["ETRS89 / UTM zone 30N", \n  GEOGCS["ETRS89", \n    DATUM["European Terrestrial Reference System 1989", \n      SPHEROID["GRS 1980", 6378137.0, 298.257222101, AUTHORITY["EPSG","7019"]], \n      TOWGS84[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], \n      AUTHORITY["EPSG","6258"]], \n    PRIMEM["Greenwich", 0.0, AUTHORITY["EPSG","8901"]], \n    UNIT["degree", 0.017453292519943295], \n    AXIS["Geodetic longitude", EAST], \n    AXIS["Geodetic latitude", NORTH], \n    AUTHORITY["EPSG","4258"]], \n  PROJECTION["Transverse_Mercator", AUTHORITY["EPSG","9807"]], \n  PARAMETER["central_meridian", -3.0], \n  PARAMETER["latitude_of_origin", 0.0], \n  PARAMETER["scale_factor", 0.9996], \n  PARAMETER["false_easting", 500000.0], \n  PARAMETER["false_northing", 0.0], \n  UNIT["m", 1.0], \n  AXIS["Easting", EAST], \n  AXIS["Northing", NORTH], \n  AUTHORITY["EPSG","25830"]]', u'@class': u'projected'}
+
+         # , u'name': u'mvw',
+
+         # u'title': u'mvw',
+
+         # u'latLonBoundingBox': {u'minx': -7.559552224805082, u'miny': 35.95523005749738, u'maxx': -1.631534162160534, u'maxy': 38.6160383053748, u'crs': u'GEOGCS["WGS84(DD)", \n  DATUM["WGS84", \n    SPHEROID["WGS84", 6378137.0, 298.257223563]], \n  PRIMEM["Greenwich", 0.0], \n  UNIT["degree", 0.017453292519943295], \n  AXIS["Geodetic longitude", EAST], \n  AXIS["Geodetic latitude", NORTH]]'}
+
+         # , u'enabled': True,
+
+         # u'namespace': {u'href': u'http://sourcegeoserver:8080/geoserver/rest/namespaces/new_workspace.json', u'name': u'new_workspace'}
+
+         # , u'projectionPolicy': u'FORCE_DECLARED',
+
+         # u'numDecimals': 0,
+
+         # u'srs': u'EPSG:25830',
+
+         # u'overridingServiceSRS': False,
+
+         # u'keywords': {u'string': [u'mvw', u'features']},
+
+         # u'attributes':
+         # {u'attribute': [
+         #     {u'maxOccurs': 1, u'nillable': True, u'binding': u'java.lang.Long', u'name': u'gid', u'minOccurs': 0},
+         #     {u'maxOccurs': 1, u'nillable': True, u'binding': u'java.lang.String', u'name': u'grd_fixid', u'minOccurs': 0},
+         #     {u'maxOccurs': 1, u'nillable': True, u'binding': u'java.lang.String', u'name': u'grd_floaid', u'minOccurs': 0},
+         #     {u'maxOccurs': 1, u'nillable': True, u'binding': u'java.lang.String', u'name': u'grd_inspir', u'minOccurs': 0},
+         #     {u'maxOccurs': 1, u'nillable': True, u'binding': u'java.math.BigDecimal', u'name': u'n_hogares', u'minOccurs': 0},
+         #     {u'maxOccurs': 1, u'nillable': True, u'binding': u'com.vividsolutions.jts.geom.Polygon', u'name': u'geom', u'minOccurs': 0}]}
+
+         # , u'nativeName': u'mvw',
+         # u'maxFeatures': 0,
+         # u'store': {u'href': u'http://sourcegeoserver:8080/geoserver/rest/workspaces/new_workspace/datastores/viv3.json', u'name': u'viv3', u'@class': u'dataStore'},
+
+         # u'metadata': {
+         #     u'entry':
+         #     [
+         #         {u'@key': u'cachingEnabled', u'$': u'false'},
+         #     {u'@key': u'JDBC_VIRTUAL_TABLE', u'virtualTable':
+         #      {u'geometry':
+         #       {u'srid': 25830, u'type': u'Polygon', u'name': u'geom'},
+         #      u'keyColumn': u'gid',
+         #      u'name': u'mvw',
+         #      u'escapeSql': False,
+         #      u'sql': u'select * from\r\nregistro_longitudinal_20150330.mvw__hogares_250\n'}}]}}}
+
+
+
+                 
+        creationDict = \
+        {u'featureType':
+          {u'circularArcPresent': False,
+          u'name': name,
+          u'title': title,
+          u'enabled': True,
+          u'namespace': {
+            u'href': u'http://%s/geoserver/rest/namespaces/%s.json' % (self.url, workspace),
+            u'name': workspace
+          },
+          u'projectionPolicy': u'FORCE_DECLARED',
+          u'numDecimals': 0,
+          u'nativeName': name,
+          u'maxFeatures': 0,
+          u'store': {
+            u'href': u'http://%s/geoserver/rest/workspaces/%s/datastores/%s.json' % (self.url, workspace, datastore),
+            u'name': datastore,
+            u'@class': u'dataStore'},
+          u'overridingServiceSRS': False}}
+
+        # Get datastore data
+        ds = self.getConnDataFromPostGisDataStore(workspace, datastore)
+        
+        # Add attributes
+        pgi = ext.postgis.GsPostGis(ds["host"], ds["port"], ds["database"], ds["user"], pgpassword)
+
+        creationDict["featureType"]["attributes"] = pgi.getFieldsFromSql(sql, geomColumn, geomType) \
+          ["attributes"]
+          
+        pgi.close()
+        creationDict["featureType"]["nativeCRS"] = ext.const.epsg["EPSG:%s" % nativeCRS]
+        creationDict["featureType"]["srs"] = "EPSG:%s" % srs
+
+        creationDict["featureType"]["metadata"] = {
+            u'entry': [
+                {u'@key': u'cachingEnabled', u'$': u'false'},
+                {u'@key': u'JDBC_VIRTUAL_TABLE', u'virtualTable': {
+                    u'name': name,
+                    u'geometry': {u'srid': srs, u'type': geomType, u'name': geomColumn},
+                    u'keyColumn': keyColumn,
+                    u'escapeSql': False,
+                    u'sql': sql}}]}
+
+        r = requests.post("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
+                          (self.url, workspace, datastore), \
+                          auth=(self.user, self.passwd), \
+                          headers={"Content-Type": "text/json"}, \
+                          data=json.dumps(creationDict))
+
+
+        import pytest
+        pytest.set_trace()
+                          
+        return r.status_code
+    
 
     def getConnDataFromPostGisDataStore(self, workspace, datastore):
         """
@@ -511,6 +663,73 @@ class GsInstance(object):
         return r.status_code
 
 
+    def getLayerNames(self):
+        """
+        Return a list with layer names.
+        """
+
+        r = requests.get("%s/rest/layers.json" % self.url, \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"})
+
+        if r.status_code==200:
+            r = r.json()
+            return [i["name"] for i in r["layers"]["layer"]]
+                         
+
+    def getLayer(self, name):
+        """
+        Returns layer definition.
+
+        :param name: Name of the layer.
+        :type name: String
+        :return: A JSON with the layer definition.
+        :rtype: String
+        """
+
+        r = requests.get("%s/rest/layers/%s" % (self.url, name), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"})
+
+        return r.json()
+
+
+    def updateLayer(self, name, styles=None):
+        """
+        Updates a layer.
+
+        :param styles: A list with style names to be assigned to the layer.
+        :type styles: List
+        :return: Code status
+        :rtype: Integer
+
+        .. todo:: Add more customizations.
+        """
+
+        modification = {"layer": {}}
+        
+        if styles is not None:
+            styleList = []
+            
+            for i in styles:
+                d = {"name": i,
+                     "href": "%s/rest/styles/%s.json" % (self.url, i)}
+                    
+                styleList.append(d)
+
+            s = {"@class": "linked-hash-set",
+                 "style": styleList}
+
+            modification["layer"]["styles"] = s
+            
+        r = requests.put("%s/rest/layers/%s" % (self.url, name), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Content-Type": "text/json"}, \
+                         data=json.dumps(modification))
+                         
+        return r.status_code
+                
+        
     def _getAmpKey(self, pairsDictList, key):
         """
         Searchs in a list of Dict pairs in the GeoServer form {"@key": "a", "$": "b"} the
