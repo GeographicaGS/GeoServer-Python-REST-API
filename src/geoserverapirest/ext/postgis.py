@@ -6,6 +6,7 @@ This submodule handles PostGIS operations.
 """
 
 import psycopg2 as pg
+from psycopg2.extensions import AsIs
 
 
 """
@@ -20,8 +21,7 @@ typeConversion = {
 
 
 
-
-
+    # TODO: To deprecate
     u"_int4": u"java.lang.Integer",
     u"_varchar": u"java.lang.String",
     u"_geometry": u"com.vividsolutions.jts.geom."
@@ -181,6 +181,32 @@ class GsPostGis(object):
         return out
 
 
+    def getColumnMinMax(self, table, column):
+        """
+        Returns the min / max values found in a column in a table.
+
+        :param table: Fully qualified table name.
+        :type table: String
+        :param column: Column name.
+        :type column: String
+        """
+
+        cur = self._conn.cursor()
+        
+        sql = "select min(%s) from %s"
+        cur.execute(sql, (AsIs(column), AsIs(table)))
+        min = cur.next()
+        
+        sql = "select max(%s) from %s"
+        cur.execute(sql, (AsIs(column), AsIs(table)))
+        max = cur.next()
+        
+        # import pytest
+        # pytest.set_trace()
+
+
+        #####HERE######    
+
     def _analyzeFields(self, cursorDescription):
         """
         Returns a dictionary with column descriptions from cursor description.
@@ -200,4 +226,3 @@ class GsPostGis(object):
             out.append(field)
 
         return out
-                                            

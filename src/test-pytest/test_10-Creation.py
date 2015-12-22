@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-# import unittest as t, time
 import geoserverapirest.core as gs
 reload(gs)
 
@@ -98,7 +97,9 @@ class TestCreation:
                                                        "postgres", 25830, \
                                                        nativeCRS=25830)
                                                        
-        assert r==201
+        assert r==201, "This is supposed to fail because this version seems unable to create "+ \
+            "Feature Types from PostGIS queries. Must be deeply checked if its a bug, or "+ \
+            "tested in an updated version."
                 
     def test_createStyle(self):
         r = self.gsi.createStyle("new_style", self.sld)
@@ -108,4 +109,3 @@ class TestCreation:
     def test_updateLayer(self):
         r = self.gsi.updateLayer("municipio", styles=["polygon", "line", "point"])
         assert r==200
-
