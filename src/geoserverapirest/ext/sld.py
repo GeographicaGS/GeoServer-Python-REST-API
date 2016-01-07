@@ -40,6 +40,3 @@ class GsSld(object):
         out[-1][1] = max
 
         return out
-        
-
-    
