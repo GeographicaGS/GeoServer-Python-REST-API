@@ -75,112 +75,100 @@ class GsPostGis(object):
         self._conn.close()
         
     
-    def getFieldsFromTable(self, schema, table):
+    def getFieldsFromTable(self, schema, table, geomColumn):
         """
         Returns a dictionary with the fields structured expected
-        by core.GsInstance.createFeatureTypeFromPostGisTable.
+        by core.GsInstance.createFeatureTypeFromPostGisTable. It's just a
+        convenience wrapper around the more general getFieldsFromSql.
 
         :param schema: Table's schema.
         :type schema: String
         :param table: Table name.
         :type table: String
-
-        .. todo:: try to get the field information from psycopg2 and not from PG information schema. Make this function compatible with the following one.
+        :param geomColumn: The name of the geometry column to be used in the table.
+        :type geomColumn: String
+        :return: A dictionary to insert into a create feature request.
+        :rtype: Dict
         """
 
-        
-        # cur = self._conn.cursor()
+        sql = "select * from %s.%s;" % (schema, table)
 
-        # q = """
-        # select
-        #   a.column_name,
-        #   a.udt_name,
-        #   a.character_maximum_length,
-        #   b.coord_dimension,
-        #   b.srid,
-        #   b.type
-        # from
-        #   information_schema.columns a left join
-        #   public.geometry_columns b on
-        #   a.table_catalog=b.f_table_catalog and
-        #   a.table_schema=b.f_table_schema and
-        #   a.table_name=b.f_table_name and
-        #   a.column_name=b.f_geometry_column
-        # where
-        #   table_schema=%s and table_name=%s
-        # order by
-        #   ordinal_position;
-        # """
-        
-        # cur.execute(q, (schema, table))
-        # fields = cur.fetchall()
-        # cur.close()
-
-        # out = {u"attributes": {u"attribute": []}}
-
-        # for i in fields:
-        #     field = {}
-        #     field[u"maxOccurs"] = 1
-        #     field[u"minOccurs"] = 0
-        #     field[u"nillable"] = True
-        #     field[u"name"] = i[0]
-
-        #     if i[1]=="geometry":
-        #         field[u"binding"] = typeConversion["geometry."+i[5]]
-        #     else:
-        #         field[u"binding"] = typeConversion[i[1]]
-
-        #     out["attributes"]["attribute"].append(field)
-            
-        # return out
+        return self.getFieldsFromSql(sql, geomColumn)
 
 
-    def getFieldsFromSql(self, sql, geomColumn, geomType):
+    def getFieldsFromSql(self, sql, geomColumn):
         """
-        Returns a dictionary with the fields structure expected
-        by core.GsInstance.createFeatureTypeFromPostGisTable.
+        Returns a Dict with columns structure as expected by
+        core.GsInstance.createFeatureTypeFromPostGisTable from a psycopg2
+        cursor's column description spawning from a SQL and a
+        geometry column name returned by the given SQL. Each column data type
+        is mapped to the correct Java data type. Only supports by now a single
+        geometry column.
 
         :param sql: SQL to analyze.
         :type sql: String
-        :param geomColumn: Name of the column containing the geometry.
+        :param geomColumn: Geometry column within SQL to analyze.
         :type geomColumn: String
-        :param geomType: Type of the geometry. Can be Polygon, MultiPolygon, ...
-        :type geomType: String
-        :return: Dict structure with field schema.
+        :return: A dictionary to insert into a create feature request.
         :rtype: Dict
-
-        .. todo:: Geometry type and srid are guessable from studying the column with type "_geometry"
-        .. todo:: Perhaps the process of getting the dictionary structure should be left to the Feature Type creation functions in core. Just leave here the _analyzeFields, including information about the EPSG, for example.
         """
 
-        # cur = self._conn.cursor()
-        # cur.execute(sql)
-        # fields = self._analyzeFields(cur.description)
+        dataTypes = self._getPgDataTypes()
+
+        # Get columns
+        cur = self._conn.cursor()
+        cur.execute(sql)
+        columns = cur.description
+        cur.close()
+
+        import pytest
+        pytest.set_trace()
+        
+        # Analyze geometry column (check SRID and geometry type)
+        try:
+            sql = """
+            select distinct
+              st_srid(%s),
+              st_geometrytype(%s)
+            from
+              (%s) a;
+            """ % (geomColumn, geomColumn, sql)
+
+            cur = self._conn.cursor()
+            cur.execute(sql)
+            res = cur.fetchall()
+            cur.close()
+        except:
+            raise PostGisException("Something happen while checking geom column %s traits." % \
+                                    geomColumn)
+        
+        if len(res)>1:
+            raise PostGisException("Not homogeneous SRID or geometry type: %s." % res)
+        elif len(res)==0:
+            raise PostGisException("geom column %s seems to be empty." % geomColumn)
+        else:
+            geometryTraits = res[0]
+        
+        out = {u"attributes": {u"attribute": []}}
+
+        for i in columns:
+            field = {}
+            field[u"maxOccurs"] = 1
+            field[u"minOccurs"] = 0
+            field[u"nillable"] = True
+            field[u"name"] = i[0]
+            dataType = dataTypes[i[1]]
+            
+            if dataType=="geometry":
+                field[u"binding"] = typeConversion["geometry."+geometryTraits[1]]
+            else:
+                field[u"binding"] = typeConversion[dataType]
+
+            out["attributes"]["attribute"].append(field)
+
+        return out
 
         
-        # print fields
-
-        
-        # cur.close()
-        # out = {u"attributes": {u"attribute": []}}
-
-        # for i in fields:
-        #     field = {}
-        #     field[u"maxOccurs"] = 1
-        #     field[u"minOccurs"] = 0
-        #     field[u"nillable"] = True
-        #     field[u"name"] = i["name"]
-
-        #     if i["type"]=="_geometry":
-        #         field[u"binding"] = typeConversion[i["type"]]+geomType
-        #     else:
-        #         field[u"binding"] = typeConversion[i["type"]]
-
-        #     out["attributes"]["attribute"].append(field)
-                        
-        # return out
-
-
     def getColumnMinMax(self, table, column):
         """
         Returns the min / max values found in a column in a table.
@@ -207,76 +195,6 @@ class GsPostGis(object):
 
         #####HERE######    
 
-        
-    def getColumnDefinitionsFromSql(self, sql, geomColumn):
-        """
-        Returns a Dict with columns structure as expected from from a psycopg2
-        cursor's column description. Only supports by now a single geomColumn.
-
-        # :param sql: SQL to analyze.
-        # :type sql: String
-        # :param geomColumn: Geometry column within SQL to analyze.
-        # :type geomColumn: String
-        # :return: A list where the first element is 
-        """
-
-        dataTypes = self._getPgDataTypes()
-
-        # Get columns
-        cur = self._conn.cursor()
-        cur.execute(sql)
-        columns = cur.description
-        cur.close()
-
-        # Analyze geometry column (check SRID and geometry type)
-        try:
-            sql = """
-            select distinct
-              st_srid(%s),
-              st_geometrytype(%s)
-            from
-              (%s) a;
-            """ % (geomColumn, geomColumn, sql)
-
-            cur = self._conn.cursor()
-            cur.execute(sql)
-            res = cur.fetchall()
-            cur.close()
-        except:
-            raise PostGisException("Something happen while checking geom column %s traits." % geomColumn)
-        
-        if len(res)>1:
-            raise PostGisException("Not homogeneous SRID or geometry type: %s." % res)
-        elif len(res)==0:
-            raise PostGisException("geom column %s seems to be empty." % geomColumn)
-        else:
-            geometryTraits = res[0]
-
-        print geometryTraits
-        
-        for i in columns:
-            print i
-        
-        out = {u"attributes": {u"attribute": []}}
-
-        for i in columns:
-            field = {}
-            field[u"maxOccurs"] = 1
-            field[u"minOccurs"] = 0
-            field[u"nillable"] = True
-            field[u"name"] = i[0]
-
-            dataType = dataTypes[i[1]]
-            
-            if dataType=="geometry":
-                field[u"binding"] = typeConversion["geometry."+geometryTraits[1]]
-            else:
-                field[u"binding"] = typeConversion[dataType]
-
-            out["attributes"]["attribute"].append(field)
-
-        return out
-    
             
     def _getPgDataTypes(self):
         """
@@ -300,29 +218,8 @@ class GsPostGis(object):
 
         return types
         
-        
-    def _analyzeFields(self, cursorDescription):
-        """
-        Returns a dictionary with column descriptions from cursor description.
 
-        :param cursorDescription: The cursor description to analyze.
-
-        .. todo:: this function should be the only one here. The getFieldsXXX functionality should move to the respective create functions at core. Guess geometry properties and add new dictionary data items to store them (geometry type and epsg).
-        """
-        
-        out = []
-
-        for i in cursorDescription:
-            Field = {}
-            field["type"] = self._dataTypes[i[1]]
-            field["name"] = i[0]
-            field["length"] = i[3]
-            out.append(field)
-
-        return out
-
-
-
+    
 class PostGisException(Exception):
     """
     Exception class for PostGIS adapter.
