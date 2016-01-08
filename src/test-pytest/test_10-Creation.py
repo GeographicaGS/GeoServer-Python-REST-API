@@ -80,8 +80,9 @@ class TestCreation:
     def test_createFeatureTypeFromPostGisTable(self):
         r = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
                                                    "new_postgis_ds", "municipio", \
-                                                   "municipio", u"Municipios de Andalucía", \
-                                                   "postgres", 25830, nativeCRS=25830)
+                                                   "geom", "municipio", \
+                                                   u"Municipios de Andalucía", \
+                                                   "postgres")
         
         assert r==201
 
@@ -94,13 +95,22 @@ class TestCreation:
                                                        "gid", "geom", "MultiPolygon", \
                                                        "municipios_sevilla", \
                                                        "Municipios de Sevilla", \
-                                                       "postgres", 25830, \
-                                                       nativeCRS=25830)
-                                                       
-        assert r==201, "This is supposed to fail because this version seems unable to create "+ \
-            "Feature Types from PostGIS queries. Must be deeply checked if its a bug, or "+ \
-            "tested in an updated version."
-                
+                                                       "postgres")
+
+        assert r==201
+
+        sql = """select * from data.municipio where "PROVINCIA"='Córdoba'"""
+        
+        r = self.gsi.createFeatureTypeFromPostGisQuery("new_workspace", \
+                                                       "new_postgis_ds", sql, \
+                                                       "gid", "geom", "MultiPolygon", \
+                                                       "municipios_cordoba", \
+                                                       "Municipios de Córdoba", \
+                                                       "postgres")
+
+        assert r==201
+
+                            
     def test_createStyle(self):
         r = self.gsi.createStyle("new_style", self.sld)
         assert r==200

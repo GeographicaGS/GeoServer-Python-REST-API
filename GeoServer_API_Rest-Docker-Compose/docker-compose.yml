@@ -4,14 +4,14 @@ db:
     - "5435:5432"
 
 sourcegeoserver:
-  image: geographica/geoserver:v2.6.2
+  image: geographica/geoserver:v2.8.1
   ports:
     - "8084:8080"
   links:
     - db
 
 destinationgeoserver:
-  image: geographica/geoserver:v2.6.2
+  image: geographica/geoserver:v2.8.1
   ports:
     - "8085:8080"
   links:

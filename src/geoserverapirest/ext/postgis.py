@@ -91,7 +91,7 @@ class GsPostGis(object):
         :rtype: Dict
         """
 
-        sql = "select * from %s.%s;" % (schema, table)
+        sql = "select * from %s.%s" % (schema, table)
 
         return self.getFieldsFromSql(sql, geomColumn)
 
@@ -105,50 +105,27 @@ class GsPostGis(object):
         is mapped to the correct Java data type. Only supports by now a single
         geometry column.
 
+        This function is rather strict. It will fail if the table contains mixed
+        geometry types and/or inexistent or mixed reference systems. It is the user
+
         :param sql: SQL to analyze.
         :type sql: String
         :param geomColumn: Geometry column within SQL to analyze.
         :type geomColumn: String
         :return: A dictionary to insert into a create feature request.
         :rtype: Dict
+
+        .. todo:: check for not set reference system
         """
 
-        dataTypes = self._getPgDataTypes()
+        dataTypes = self.getPgDataTypes()
 
         # Get columns
         cur = self._conn.cursor()
         cur.execute(sql)
         columns = cur.description
         cur.close()
-
-        import pytest
-        pytest.set_trace()
-        
-        # Analyze geometry column (check SRID and geometry type)
-        try:
-            sql = """
-            select distinct
-              st_srid(%s),
-              st_geometrytype(%s)
-            from
-              (%s) a;
-            """ % (geomColumn, geomColumn, sql)
-
-            cur = self._conn.cursor()
-            cur.execute(sql)
-            res = cur.fetchall()
-            cur.close()
-        except:
-            raise PostGisException("Something happen while checking geom column %s traits." % \
-                                    geomColumn)
-        
-        if len(res)>1:
-            raise PostGisException("Not homogeneous SRID or geometry type: %s." % res)
-        elif len(res)==0:
-            raise PostGisException("geom column %s seems to be empty." % geomColumn)
-        else:
-            geometryTraits = res[0]
-        
+        geomData = self.analyzeGeomColumnFromSql(sql, geomColumn)
         out = {u"attributes": {u"attribute": []}}
 
         for i in columns:
@@ -160,43 +137,153 @@ class GsPostGis(object):
             dataType = dataTypes[i[1]]
             
             if dataType=="geometry":
-                field[u"binding"] = typeConversion["geometry."+geometryTraits[1]]
+                field[u"binding"] = typeConversion["geometry."+geomData["type"]]
             else:
                 field[u"binding"] = typeConversion[dataType]
 
             out["attributes"]["attribute"].append(field)
+            
+        return out
+
+        
+    def getColumnMinMax(self, schema, table, column):
+        """
+        Returns the min / max values found in a column in a table.
+
+        :param schema: Table schema name.
+        :type schema: String
+        :param table: Table name.
+        :type table: String
+        :param column: Column name.
+        :type column: String
+        :return: A List in the form min / max
+        :rtype: List
+        """
+        
+        cur = self._conn.cursor()
+        sql = "select min(%s), max(%s) from %s.%s;"
+        cur.execute(sql, (AsIs(column), AsIs(column), AsIs(schema), AsIs(table)))
+        results = cur.next()
+
+        return [results[0], results[1]]
+
+
+    def analyzeGeomColumnFromTable(self, schema, table, geomColumn):
+        """
+        Analyzes a geometry column for basic statistics and coherency in a given table.
+        This is a rather strict function. It will fail if any of this conditions are unmet:
+
+        - no reference system is set (st_srid=-1);
+        - no homogeneous reference system found (geometries with different reference systems
+          present);
+        - no homogeneous geometry types found (geometries with different geometry types
+          present).
+
+        If this conditions are met, it returns a dictionary with the following keys:
+
+        - xmin: st_xmin of the whole geometry set;
+        - xmax: st_xmax of the whole geometry set;
+        - ymin: st_ymin of the whole geometry set;
+        - ymax: st_ymax of the whole geometry set;
+        - srid: homogeneous SRID found as per st_srid;
+        - type: homogeneous geometry type found as per st_geometrytype.
+
+        This function is just a convenience wrapper around the more general
+        analyzeGeomColumnFromSql.
+        
+        :param sql: SQL query to work on.
+        :type sql: String
+        :param geomColumn: Geometry column in the SQL to analyze.
+        :type geomColumn: String
+        :return: A Dict with basic data about the geometry column.
+        :rtype: Dict
+        """
+
+        sql = "select * from %s.%s" % (schema, table)
+
+        return self.analyzeGeomColumnFromSql(sql, geomColumn)
+    
+
+    def analyzeGeomColumnFromSql(self, sql, geomColumn):
+        """
+        Analyzes a geometry column for basic statistics and coherency in a given SQL query.
+        This is a rather strict function. It will fail if any of this conditions are unmet:
+
+        - no reference system is set (st_srid=-1);
+        - no homogeneous reference system found (geometries with different reference systems
+          present);
+        - no homogeneous geometry types found (geometries with different geometry types
+          present).
+
+        If this conditions are met, it returns a dictionary with the following keys:
+
+        - xmin: st_xmin of the whole geometry set;
+        - xmax: st_xmax of the whole geometry set;
+        - ymin: st_ymin of the whole geometry set;
+        - ymax: st_ymax of the whole geometry set;
+        - srid: homogeneous SRID found as per st_srid;
+        - type: homogeneous geometry type found as per st_geometrytype.
+
+        :param sql: SQL query to work on.
+        :type sql: String
+        :param geomColumn: Geometry column in the SQL to analyze.
+        :type geomColumn: String
+        :return: A Dict with basic data about the geometry column.
+        :rtype: Dict
+        """
+
+        out = {}
+                
+        try:
+            # Analyze geometry column (check SRID and geometry type)
+            qsql = """
+            select distinct
+              st_srid(%s),
+              st_geometrytype(%s)
+            from
+              (%s) a
+            """
+
+            cur = self._conn.cursor()
+            cur.execute(qsql, (AsIs(geomColumn), AsIs(geomColumn), AsIs(sql)))
+            res = cur.fetchall()
+            
+            if len(res)>1:
+                raise PostGisException("Not homogeneous SRID or geometry type: %s." % res)
+            elif len(res)==0:
+                raise PostGisException("geom column %s seems to be empty." % geomColumn)
+            else:
+                out["srid"] = res[0][0]
+                out["type"] = res[0][1]
+            
+            # Check extends
+            qsql = """
+            select
+              min(st_xmin(%s)),
+              max(st_xmax(%s)),
+              min(st_ymin(%s)),
+              max(st_ymax(%s))
+            from
+              (%s) a;
+            """
+
+            cur.execute(qsql, (AsIs(geomColumn), AsIs(geomColumn), AsIs(geomColumn), \
+                              AsIs(geomColumn), AsIs(sql)))
+            res = cur.fetchall()
+            cur.close()
+
+            out["xmin"] = res[0][0]
+            out["xmax"] = res[0][1]
+            out["ymin"] = res[0][2]
+            out["ymax"] = res[0][3]
+        except:
+            raise PostGisException("Something happen while checking geom column %s traits." % \
+                                    geomColumn)
 
         return out
 
         
-    def getColumnMinMax(self, table, column):
-        """
-        Returns the min / max values found in a column in a table.
-
-        :param table: Fully qualified table name.
-        :type table: String
-        :param column: Column name.
-        :type column: String
-        """
-
-        cur = self._conn.cursor()
-        
-        sql = "select min(%s) from %s"
-        cur.execute(sql, (AsIs(column), AsIs(table)))
-        min = cur.next()
-        
-        sql = "select max(%s) from %s"
-        cur.execute(sql, (AsIs(column), AsIs(table)))
-        max = cur.next()
-        
-        # import pytest
-        # pytest.set_trace()
-
-
-        #####HERE######    
-
-            
-    def _getPgDataTypes(self):
+    def getPgDataTypes(self):
         """
         Returns a dictionary with the whole catalog of datatypes of the current database.
         Key is the OID of each data type, so it can be matched against psycopg2

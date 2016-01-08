@@ -27,6 +27,14 @@ class TestDeletion(object):
     def test_deleteFeatureType(self):
         r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", "municipio", recurse=True)
         assert r==200
+
+        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
+                                       "municipios_sevilla", recurse=True)
+        assert r==200
+
+        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
+                                       "municipios_cordoba", recurse=True)
+        assert r==200
         
 
     def test_deleteDatastore(self):

@@ -307,11 +307,17 @@ class GsInstance(object):
         return r.status_code
                             
 
-    def createFeatureTypeFromPostGisTable(self, workspace, datastore, table, name, title, \
-                                          pgpassword, srs, nativeCRS=None):
+    def createFeatureTypeFromPostGisTable(self, workspace, datastore, table, \
+                                          geomColumn, name, title, \
+                                          pgpassword):
         """
         Creates a feature type from an existing PostGIS table.
         ONLY SUPPORTS SINGLE GEOM TABLES BY NOW.
+
+        This is a rather strict function. It expects to find a tidy table in terms
+        of geometry: homogeneous geometry type and reference system the given geometry
+        column. Will fail if this conditions are not met or if the reference system is
+        not set.
 
         :param workspace: Name of the workspace the DataStore belongs to.
         :type workspace: String
@@ -319,22 +325,22 @@ class GsInstance(object):
         :type datastore: String
         :param table: Name of the source table, without schema (schema is specified in the datastore).
         :type table: String
+        :param geomColumn: Geometry column name to be used in the table.
+        :type geomColumn: String
         :param name: Name of the new FeatureType.
         :type name: String
         :param title: Title of the new Feature Type.
         :type title: String
         :param pgpassword: Password for the PostGIS the DataStore references. This is so because we can't get the password from the GeoServer DataStore yet.
         :type pgpassword: String
-        :param srs: Declared SRS. The default SRS the layer will be served on. Must be a integer EPSG code.
-        :type srs: Integer
-        :param nativeCRS: Native CRS EPSG. Defaults to None. Has to be explicitly given. In the future, if None, will be infered from PostGIS somehow. Must be a integer EPSG code.
-        :type nativeCRS: Integer
 
         .. todo:: Change to JSON creation, check get for feature types.
         .. todo:: A lot of items has been purged. Check test_15-Query.py for the full dict response of a get feature type.
         .. todo:: try to get the DataStore connection password from GeoServer.
         .. todo:: support multigeom tables.
         .. todo:: Infere EPSG from geometries or PostGIS geometry_columns.
+        .. todo:: Add an option to override the default geometry type inferred
+        .. todo:: check for not set reference system.
         """
 
         creationDict = \
@@ -359,16 +365,21 @@ class GsInstance(object):
 
         # Get datastore data
         ds = self.getConnDataFromPostGisDataStore(workspace, datastore)
-        
+
         # Add attributes
         pgi = ext.postgis.GsPostGis(ds["host"], ds["port"], ds["database"], ds["user"], pgpassword)
 
-        creationDict["featureType"]["attributes"] = pgi.getFieldsFromTable(ds["schema"], table)["attributes"]
+        # Get geometry column attributes
+        geomColumnAttr = pgi.analyzeGeomColumnFromTable(ds["schema"], table, geomColumn)
+        
+        creationDict["featureType"]["attributes"] = \
+          pgi.getFieldsFromTable(ds["schema"], table, geomColumn)["attributes"]
         pgi.close()
         
-        creationDict["featureType"]["nativeCRS"] = ext.const.epsg["EPSG:%s" % nativeCRS]
-        creationDict["featureType"]["srs"] = "EPSG:%s" % srs
-        
+        creationDict["featureType"]["nativeCRS"] = ext.const.epsg["EPSG:%s" % \
+                                                                  geomColumnAttr["srid"]]
+        creationDict["featureType"]["srs"] = "EPSG:%s" % geomColumnAttr["srid"]
+                
         r = requests.post("%s/rest/workspaces/%s/datastores/%s/featuretypes.json" % \
                           (self.url, workspace, datastore), \
                           auth=(self.user, self.passwd), \
@@ -379,11 +390,11 @@ class GsInstance(object):
 
 
     def createFeatureTypeFromPostGisQuery(self, workspace, datastore, sql, keyColumn, geomColumn, \
-                                          geomType, name, title, pgpassword, srs, nativeCRS=None):
+                                          geomType, name, title, pgpassword):
         """
         Creates a Feature Type from a query to a PostGIS.
 
-        THIS FUNCTION DOES NOT WORK, TEST IN A NEWER VERSION.
+        THIS FUNCTION DOES NOT WORK IN 2.6.2, BUT DOES IN 2.8.1.
 
         :param workspace: Name of the workspace the DataStore belongs to.
         :type workspace: String
@@ -415,6 +426,8 @@ class GsInstance(object):
         .. todo:: Infere EPSG from geometries or PostGIS geometry_columns.
         .. todo:: check all available geomType.
         .. todo:: This function does not work on 2.6.2. creationDict seems to be OK, but outputs an error. Test in a newer version.
+        .. todo:: override default geometry type guessed from geometry column.
+        .. todo:: tidy up documentation. Some parameters are gone.
         """
                  
         creationDict = \
@@ -444,22 +457,25 @@ class GsInstance(object):
         # Add attributes
         pgi = ext.postgis.GsPostGis(ds["host"], ds["port"], ds["database"], ds["user"], pgpassword)
 
+        # Get geometry column attributes
+        geomColumnAttr = pgi.analyzeGeomColumnFromSql(sql, geomColumn)
+        
         creationDict["featureType"]["attributes"] = \
-          pgi.getFieldsFromSql(sql, geomColumn, geomType)["attributes"]
-          
+          pgi.getFieldsFromSql(sql, geomColumn)["attributes"]
         pgi.close()
         
         creationDict["featureType"]["nativeCRS"] = \
-          ext.const.epsg["EPSG:%s" % nativeCRS]
+          ext.const.epsg["EPSG:%s" % geomColumnAttr["srid"]]
           
-        creationDict["featureType"]["srs"] = "EPSG:%s" % srs
+        creationDict["featureType"]["srs"] = "EPSG:%s" % geomColumnAttr["srid"]
 
         creationDict["featureType"]["metadata"] = {
             u'entry': {
                 u'@key': u'JDBC_VIRTUAL_TABLE',
                 u'virtualTable': {
                     u'name': name,
-                    u'geometry': {u'srid': srs, u'type': geomType, u'name': geomColumn},
+                    u'geometry': {u'srid': geomColumnAttr["srid"], \
+                                  u'type': geomColumnAttr["type"], u'name': geomColumn},
                     u'keyColumn': keyColumn,
                     u'escapeSql': False,
                     u'sql': sql}}}
