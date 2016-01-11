@@ -23,7 +23,7 @@ class TestHelpers:
 
 
     def test_getMinMaxFromPgColumn(self):
-        r = self.pgisC.getColumnMinMax("data.municipio;delete from data.municipio;", "area")
+        r = self.pgisC.getColumnMinMax("data", "municipio", "area")
 
         
         

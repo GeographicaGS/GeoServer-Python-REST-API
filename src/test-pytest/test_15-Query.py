@@ -25,12 +25,12 @@ class TestQuery:
 
     def test_queryStylesNames(self):
         r = self.gsi.getStyleNames()
-        assert set(r)==set([u"point", u"line", u"polygon", u"raster", u"new_style"])
+        assert set(r)==set([u"generic", u"point", u"line", u"polygon", u"raster", u"new_style"])
 
 
     def test_queryFeatureTypeNames(self):
         r = self.gsi.getFeatureTypeNames("new_workspace", "new_postgis_ds")
-        assert set(r)==set([u"municipio"])
+        assert set(r)==set([u"municipio", u"municipios_cordoba", u"municipios_sevilla"])
 
 
     def test_queryDataStoresNames(self):
@@ -154,7 +154,7 @@ class TestQuery:
         
         assert r[u'store']=={
             u'href': u'http://sourcegeoserver:8080/geoserver/rest/workspaces/new_workspace/datastores/new_postgis_ds.json',
-            u'name': u'new_postgis_ds',
+            u'name': u'new_workspace:new_postgis_ds',
             u'@class': u'dataStore'}
         
         assert r[u'overridingServiceSRS']==False
@@ -170,7 +170,7 @@ class TestQuery:
 
     def test_getLayerNames(self):
         r = self.gsi.getLayerNames()
-        assert r==["municipio"]
+        assert r==[u"municipio", u"municipios_sevilla", u"municipios_cordoba"]
 
 
     def test_getLayer(self):
