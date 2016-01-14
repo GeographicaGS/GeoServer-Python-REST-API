@@ -657,10 +657,37 @@ class GsInstance(object):
         return r.json()
 
 
-    def updateLayer(self, name, styles=None):
+    def getLayerStyles(self, name):
+        """
+        Returns the styles attached to a layer.
+
+        :param name: Layer's name.
+        :type name: String
+        :return: A list with style names added to the layer.
+        :rtype: List
+        """
+
+        r = requests.get("%s/rest/layers/%s/styles.json" % (self.url, name), \
+                         auth=(self.user, self.passwd), \
+                         headers={"Accept": "text/json"})
+
+        return r.json()
+
+
+    def setDefaultLayerStyle(self, name, styleName):
+        pass
+        # data = {u'defaultstyle': {u'style': [
+        #     {u'href': u'%s/rest/layers/%s/styles/municipio_area.json', u'name': u'municipio_area'}]}}
+       
+
+    def updateLayer(self, name, defaultStyle=None, styles=None):
         """
         Updates a layer.
 
+        :param name: Name of the layer to modify.
+        :type name: String
+        :param defaultStyle: Default style for the layer.
+        :type defaultStyle: String
         :param styles: A list with style names to be assigned to the layer.
         :type styles: List
         :return: Code status
@@ -684,7 +711,13 @@ class GsInstance(object):
                  "style": styleList}
 
             modification["layer"]["styles"] = s
-            
+
+        if defaultStyle is not None:
+            d = {"name": defaultStyle,
+                 "href": "%s/rest/styles/%s.json" % (self.url, i)}
+
+            modification["layer"]["defaultStyle"] = d
+                        
         r = requests.put("%s/rest/layers/%s" % (self.url, name), \
                          auth=(self.user, self.passwd), \
                          headers={"Content-Type": "text/json"}, \

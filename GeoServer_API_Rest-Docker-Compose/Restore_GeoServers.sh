@@ -6,8 +6,8 @@ docker-compose stop
 docker-compose rm -v -f
 docker-compose up -d
 
-echo Waiting 23s for the PostgreSQL container to be up...
-sleep 23s
+echo Waiting 33s for the PostgreSQL container to be up...
+sleep 33s
 
 # Repopulate database
 PGPASSWORD="postgres" psql -h localhost -p 5435 -U postgres postgres -f DB-Test/00-Database-DDL.sql

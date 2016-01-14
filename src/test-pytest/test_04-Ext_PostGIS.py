@@ -19,13 +19,13 @@ class TestExtPostGis:
         self.pgi = pg.GsPostGis("db", "5432", "test_geoserver", \
                                 "postgres", "postgres")
 
-
-    def test_getFieldsFromSql(self):
+            
+    def test_getFieldsFromTable(self):
         """
         Test getFieldsFromTable.
         """
 
-        r = self.pgi.getFieldsFromSql("select * from data.municipio", "geom")
+        r = self.pgi.getFieldsFromTable("data", "municipio", "geom")
         self.pgi.close()
 
         assert isinstance(r, dict)
@@ -51,13 +51,13 @@ class TestExtPostGis:
                    u'com.vividsolutions.jts.geom.MultiPolygon', u'name': 'geom', u'minOccurs': 0}]:
             assert i in r
 
-            
-    def test_getFieldsFromTable(self):
+
+    def test_getFieldsFromSql(self):
         """
         Test getFieldsFromTable.
         """
 
-        r = self.pgi.getFieldsFromTable("data", "municipio", "geom")
+        r = self.pgi.getFieldsFromSql("select * from data.municipio", "geom")
         self.pgi.close()
 
         assert isinstance(r, dict)

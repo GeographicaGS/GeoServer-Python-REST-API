@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-import math
+import math, colour
 import xml.etree.ElementTree as x
 
 """
@@ -159,7 +159,7 @@ class GsSldFeatureTypeStyle(GsSldElement):
         :type symbol: xml.etree.ElementTree
         """
 
-        self.sld.insert(1, rule())
+        self.sld.insert(0, rule())
 
 
 
@@ -373,3 +373,66 @@ class SldException(Exception):
     def __str__(self):
         return "Exception in SLD parser: %s" % self.explanation
     
+
+
+class Range(object):
+    """
+    This class implements several methods to calculate ranges and data series
+    segmentations.
+    """
+
+    def __init__(self):
+        pass
+
+
+    def equalInterval(self, min, max, intervals, precision):
+        """
+        Returns equal intervals.
+
+        :param min: Lower limit of the interval.
+        :type min: Float
+        :param max: Upper limit of the interval.
+        :type max: Float
+        :param intervals: Number of intervals.
+        :type intervals: Integer
+        :param precision: Precision of interval limits.
+        :type precision: Integer
+        :return: A list of lists containing the interval limits.
+        :rtype: List
+
+        .. todo: This function was relocated from SLD and needs proper testing.
+        """
+
+        step = round((max-min)*1.00/intervals, precision)
+        precisionStep = math.pow(10, -precision)
+        out = []
+        
+        for i in range(0, intervals):
+            out.append([round(min+(i*step), precision),
+                        round(min+((i+1)*step)-precisionStep, precision)])
+
+        # Redefine upper from last interval
+        out[-1][1] = max
+
+        return out
+
+
+    
+class Color(object):
+    """
+    Color manipulation methods.
+    """
+
+    def __init__(self):
+        pass
+
+
+    def colorRamp(self, initial, final, steps):
+        """
+        Returns a list with color codes between initial, final in a given steps.
+        """
+
+        e = list(colour.Color(initial).range_to(colour.Color(final), steps))
+                    
+        return [i.get_hex() for i in e]
+

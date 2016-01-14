@@ -25,12 +25,14 @@ class TestQuery:
 
     def test_queryStylesNames(self):
         r = self.gsi.getStyleNames()
-        assert set(r)==set([u"generic", u"point", u"line", u"polygon", u"raster", u"new_style"])
+        assert set(r)==set([u"generic", u"point", u"line", u"polygon", u"raster", u"new_style", \
+                            u"municipio_area"])
 
 
     def test_queryFeatureTypeNames(self):
         r = self.gsi.getFeatureTypeNames("new_workspace", "new_postgis_ds")
-        assert set(r)==set([u"municipio", u"municipios_cordoba", u"municipios_sevilla"])
+        assert set(r)==set([u"municipio", u"municipios_cordoba", u"municipios_sevilla", \
+                            u"municipios_area"])
 
 
     def test_queryDataStoresNames(self):
@@ -170,12 +172,16 @@ class TestQuery:
 
     def test_getLayerNames(self):
         r = self.gsi.getLayerNames()
-        assert r==[u"municipio", u"municipios_sevilla", u"municipios_cordoba"]
+        assert r==[u"municipio", u"municipios_sevilla", u"municipios_cordoba", u"municipios_area"]
 
 
     def test_getLayer(self):
         r = self.gsi.getLayer("municipio")
 
+        print
+        print r
+        print 
+        
         assert isinstance(r, dict)
         assert "layer" in r.keys()
 
@@ -197,3 +203,15 @@ class TestQuery:
 
         for i in [{u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/polygon.json', u'name': u'polygon'}, {u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/line.json', u'name': u'line'}, {u'href': u'http://sourcegeoserver:8080/geoserver/rest/styles/point.json', u'name': u'point'}]:
             assert i in r
+
+
+    def test_getLayerStyles(self):
+        """
+        Tests getting the style names associated to the layer.
+        """
+            
+        r = self.gsi.getLayerStyles("municipios_area")
+
+        print
+        print r
+
