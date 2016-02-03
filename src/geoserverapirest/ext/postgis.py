@@ -19,8 +19,11 @@ getFieldsFromSql, remove them.
 
 typeConversion = {
     u"int4": "java.lang.Integer",
+    u"int8": "java.lang.Integer",
+    u"numeric": "java.lang.Double",
     u"varchar": "java.lang.String",
     u"geometry.ST_MultiPolygon": "com.vividsolutions.jts.geom.MultiPolygon",
+    u"geometry.ST_Polygon": "com.vividsolutions.jts.geom.Polygon",
     u"float8": "java.lang.Double"
 }
 

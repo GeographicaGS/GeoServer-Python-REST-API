@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-import math, colour
+import math, colour, random
 import xml.etree.ElementTree as x
 
 """
@@ -46,16 +46,12 @@ class GsSldRoot(GsSldElement):
         """
         Creates a new SLD root.
         """
-
+        
         xml = \
           '<?xml version="1.0" encoding="UTF-8"?>'+ \
-          '<def:StyledLayerDescriptor xmlns:def="http://www.opengis.net/sld" '+ \
+          '<StyledLayerDescriptor version="1.0.0" '+ \
           'xmlns:ogc="http://www.opengis.net/ogc" '+ \
-          'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '+ \
-          'version="1.1.0" xmlns:xlink="http://www.w3.org/1999/xlink" '+ \
-          'xsi:schemaLocation="http://www.opengis.net/sld '+ \
-          'http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" '+ \
-          'xmlns:se="http://www.opengis.net/se"></def:StyledLayerDescriptor>'
+          'xmlns="http://www.opengis.net/sld"></StyledLayerDescriptor>'
         
         self.sld = x.fromstring(xml)
 
@@ -86,9 +82,8 @@ class GsSldNamedLayer(GsSldElement):
         """
 
         xml = \
-          '<def:NamedLayer xmlns:se="http://www.opengis.net/se" '+ \
-          'xmlns:def="http://www.opengis.net/sld">'+ \
-          '<se:Name>%s</se:Name></def:NamedLayer>' % name
+          '<NamedLayer>'+ \
+          '<Name>%s</Name></NamedLayer>' % name
                          
         self.sld = x.fromstring(xml)
 
@@ -117,9 +112,8 @@ class GsSldUserStyle(GsSldElement):
         """
 
         xml = \
-          '<def:UserStyle xmlns:se="http://www.opengis.net/se" '+ \
-          'xmlns:def="http://www.opengis.net/sld">'+ \
-          '<se:Name>%s</se:Name></def:UserStyle>' % name
+          '<UserStyle>'+ \
+          '<Name>%s</Name></UserStyle>' % name
 
         self.sld = x.fromstring(xml)
 
@@ -146,7 +140,7 @@ class GsSldFeatureTypeStyle(GsSldElement):
         Creates a new FeatureTypeStyle element.
         """
         
-        xml = '<se:FeatureTypeStyle xmlns:se="http://www.opengis.net/se"></se:FeatureTypeStyle>'
+        xml = '<FeatureTypeStyle></FeatureTypeStyle>'
 
         self.sld = x.fromstring(xml)
 
@@ -259,10 +253,10 @@ class GsSldRule(GsSldElement):
         """
         
         xml = \
-            '<se:Rule xmlns:se="http://www.opengis.net/se">'+ \
-            '<se:Name>%s</se:Name>' % name+ \
-            '<se:Description><se:Title>%s</se:Title></se:Description>' % description+ \
-            '</se:Rule>'
+            '<Rule>'+ \
+            '<Name>%s</Name>' % name+ \
+            '<Title>%s</Title>' % description+ \
+            '</Rule>'
 
         self.sld = x.fromstring(xml)
 
@@ -302,11 +296,11 @@ class GsSldStrokeSymbolizer(GsSldElement):
         """
 
         xml = \
-            '<se:Stroke xmlns:se="http://www.opengis.net/se">'+ \
-            '<se:SvgParameter name="stroke">%s</se:SvgParameter>' % color+ \
-            '<se:SvgParameter name="stroke-width">%s</se:SvgParameter>' % width+ \
-            '<se:SvgParameter name="stroke-linejoin">%s</se:SvgParameter>' % linejoin+ \
-            '</se:Stroke>'
+            '<Stroke>'+ \
+            '<CssParameter name="stroke">%s</CssParameter>' % color+ \
+            '<CssParameter name="stroke-width">%s</CssParameter>' % width+ \
+            '<CssParameter name="stroke-linejoin">%s</CssParameter>' % linejoin+ \
+            '</Stroke>'
 
         self.sld = x.fromstring(xml)
 
@@ -328,9 +322,9 @@ class GsSldFillSymbolizer(GsSldElement):
         """
 
         xml = \
-            '<se:Fill xmlns:se="http://www.opengis.net/se">'+ \
-            '<se:SvgParameter name="fill">%s</se:SvgParameter>' % color+ \
-            '</se:Fill>'
+            '<Fill>'+ \
+            '<CssParameter name="fill">%s</CssParameter>' % color+ \
+            '</Fill>'
 
         self.sld = x.fromstring(xml)
 
@@ -343,8 +337,8 @@ class GsSldPolygonSymbolizer(GsSldElement):
 
     def __init__(self):
         xml = \
-            '<se:PolygonSymbolizer xmlns:se="http://www.opengis.net/se">'+ \
-            '</se:PolygonSymbolizer>'
+            '<PolygonSymbolizer>'+ \
+            '</PolygonSymbolizer>'
 
         self.sld = x.fromstring(xml)
 
@@ -403,6 +397,9 @@ class Range(object):
         .. todo: This function was relocated from SLD and needs proper testing.
         """
 
+        min = float(min)
+        max = float(max)
+        
         step = round((max-min)*1.00/intervals, precision)
         precisionStep = math.pow(10, -precision)
         out = []
@@ -417,6 +414,78 @@ class Range(object):
         return out
 
 
+    def jenksInterval(self, data, intervals, precision):
+        """
+        Returns Jenks intervals.
+
+        :param data: The data sequence.
+        :type data: List
+        :param intervals: Number of intervals to be computed.
+        :type intervals: Integer
+        :param precision: Number of decimals to be used.
+        :type precision: Integer
+        :return: A list of lists containing the interval limits.
+        :rtype: List
+
+        .. todo:: create exception, for example to use in this method
+        """
+
+        if len(data)<intervals:
+            return None
+
+        data = [round(i, precision) for i in data]
+        data = sorted(data)
+        print data
+
+        
+        print self._sdam(data)
+
+        # Breaks means "break after the designated place in the data array
+        # Create an evenly distributed initial break
+        # step = len(data)/intervals
+        # print "Step", step
+
+        # breaks = [i*step for i in range(0, intervals-1)]
+        
+        # #         breaks = 
+
+
+        self._divideEvenly(data, intervals)
+
+        # sorted([random.randint(0, len(data)-2) for i in range(0, intervals-1)])
+
+        print "len(data)", len(data)
+        
+        print "Breaks", breaks
+                
+        return 1
+
+
+    def _divideEvenly(self, data, intervals):
+        out = []
+        size = len(data)/intervals
+
+        print "Size", size
+        
+        for i in range(0, intervals-1):
+            out.append(i*size)
+
+        print "Last", out[-1]
+
+        print "Out", out
+
+    def _sdam(self, data):
+        """
+        Calculates the sum of squared deviations for array mean of a list.
+        """
+
+        m = sum(data)/len(data)
+
+        print m
+        
+        return sum([math.pow(i-m, 2) for i in data])
+
+    
     
 class Color(object):
     """

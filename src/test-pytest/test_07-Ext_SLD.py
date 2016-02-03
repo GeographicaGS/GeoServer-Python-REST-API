@@ -26,7 +26,7 @@ class TestExtSld:
 
         s = sld.GsSldRoot()
         
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1.0" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" />"""
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" version="1.0.0" />"""
 
 
     def test_createSldNamedLayer(self):
@@ -36,7 +36,7 @@ class TestExtSld:
 
         s = sld.GsSldNamedLayer("aNamedLayer")
 
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:NamedLayer xmlns:ns0="http://www.opengis.net/sld" xmlns:ns1="http://www.opengis.net/se"><ns1:Name>aNamedLayer</ns1:Name></ns0:NamedLayer>"""
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<NamedLayer><Name>aNamedLayer</Name></NamedLayer>"""
 
 
     def test_createUserStyle(self):
@@ -45,8 +45,8 @@ class TestExtSld:
         """
 
         s = sld.GsSldUserStyle("aUserStyle")
-
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:UserStyle xmlns:ns0="http://www.opengis.net/sld" xmlns:ns1="http://www.opengis.net/se"><ns1:Name>aUserStyle</ns1:Name></ns0:UserStyle>"""
+        
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<UserStyle><Name>aUserStyle</Name></UserStyle>"""
         
 
     def test_createFeatureTypeStyle(self):
@@ -55,8 +55,8 @@ class TestExtSld:
         """
 
         s = sld.GsSldFeatureTypeStyle()
-        
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:FeatureTypeStyle xmlns:ns0="http://www.opengis.net/se" />"""
+
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<FeatureTypeStyle />"""
         
 
     def test_createCondition(self):
@@ -65,7 +65,7 @@ class TestExtSld:
         """
 
         s = sld.GsSldCondition("GT", "afield", "30.2")
-
+        
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsGreaterThan xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThan>"""
 
 
@@ -86,7 +86,7 @@ class TestExtSld:
 
         s = sld.GsSldRule("aRule", "aRule description")
 
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:Rule xmlns:ns0="http://www.opengis.net/se"><ns0:Name>aRule</ns0:Name><ns0:Description><ns0:Title>aRule description</ns0:Title></ns0:Description></ns0:Rule>"""
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<Rule><Name>aRule</Name><Title>aRule description</Title></Rule>"""
         
 
     def test_createStrokeSymbolizer(self):
@@ -95,8 +95,8 @@ class TestExtSld:
         """
 
         s = sld.GsSldStrokeSymbolizer("#001100", 0.5, "bevel")
-
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:Stroke xmlns:ns0="http://www.opengis.net/se"><ns0:SvgParameter name="stroke">#001100</ns0:SvgParameter><ns0:SvgParameter name="stroke-width">0.5</ns0:SvgParameter><ns0:SvgParameter name="stroke-linejoin">bevel</ns0:SvgParameter></ns0:Stroke>"""
+        
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<Stroke><CssParameter name="stroke">#001100</CssParameter><CssParameter name="stroke-width">0.5</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke>"""
 
 
     def test_createFillSymbolizer(self):
@@ -105,8 +105,8 @@ class TestExtSld:
         """
 
         s = sld.GsSldFillSymbolizer("#009922")
-
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:Fill xmlns:ns0="http://www.opengis.net/se"><ns0:SvgParameter name="fill">#009922</ns0:SvgParameter></ns0:Fill>"""
+        
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<Fill><CssParameter name="fill">#009922</CssParameter></Fill>"""
 
 
     def test_createPolygonSymbolizer(self):
@@ -115,8 +115,8 @@ class TestExtSld:
         """
 
         s = sld.GsSldPolygonSymbolizer()
-
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PolygonSymbolizer xmlns:ns0="http://www.opengis.net/se" />"""
+        
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<PolygonSymbolizer />"""
 
 
     def test_rangesEqualInterval(self):
@@ -128,6 +128,22 @@ class TestExtSld:
         
         assert s.equalInterval(1, 15, 4, 2)== \
             [[1.0, 4.49], [4.5, 7.99], [8.0, 11.49], [11.5, 15]]
+
+
+    def test_rangesJenksInterval(self):
+        """
+        Test Jenks interval output.
+        """
+
+        s = sld.Range()
+
+        # assert s.jenksInterval([3.12312, 2.1231234, 5.33323, 30.23232, 22.12312, 2.32323, 5.322334, \
+        #                         6.33234, 7.32324, 2.343434, 7.32343, 16.343434], 5, 2)== \
+        #                         [[3,2],[2,3]]
+
+        assert s.jenksInterval([4.3342,9.32323,10.33243,5.34234], 3, 1)== \
+                                [[3,2],[2,3]]
+     
         
 
     def test_createColorRamp(self):
@@ -176,4 +192,10 @@ class TestExtSld:
         root = sld.GsSldRoot()
         root.addNamedLayer(namedLayer)
 
-        assert str(root)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" xmlns:ns2="http://www.opengis.net/se" xmlns:ns3="http://www.opengis.net/ogc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1.0" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd"><ns0:NamedLayer><ns2:Name>municipio</ns2:Name><ns0:UserStyle><ns2:Name>municipio</ns2:Name><ns2:FeatureTypeStyle><ns2:Rule><ns2:Name>A rule</ns2:Name><ns2:Description><ns2:Title>This is a rule</ns2:Title></ns2:Description><ns3:Filter><ns3:And><ns3:PropertyIsGreaterThan><ns3:PropertyName>area</ns3:PropertyName><ns3:Literal>3</ns3:Literal></ns3:PropertyIsGreaterThan><ns3:PropertyIsLessThanOrEqualTo><ns3:PropertyName>area</ns3:PropertyName><ns3:Literal>4</ns3:Literal></ns3:PropertyIsLessThanOrEqualTo></ns3:And></ns3:Filter><ns2:PolygonSymbolizer><ns2:Fill><ns2:SvgParameter name="fill">#000000</ns2:SvgParameter></ns2:Fill><ns2:Stroke><ns2:SvgParameter name="stroke">#000000</ns2:SvgParameter><ns2:SvgParameter name="stroke-width">0.25</ns2:SvgParameter><ns2:SvgParameter name="stroke-linejoin">bevel</ns2:SvgParameter></ns2:Stroke></ns2:PolygonSymbolizer></ns2:Rule></ns2:FeatureTypeStyle></ns0:UserStyle></ns0:NamedLayer></ns0:StyledLayerDescriptor>"""
+        assert str(root)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" xmlns:ns1="http://www.opengis.net/ogc" version="1.0.0"><NamedLayer><Name>municipio</Name><UserStyle><Name>municipio</Name><FeatureTypeStyle><Rule><Name>A rule</Name><Title>This is a rule</Title><ns1:Filter><ns1:And><ns1:PropertyIsGreaterThan><ns1:PropertyName>area</ns1:PropertyName><ns1:Literal>3</ns1:Literal></ns1:PropertyIsGreaterThan><ns1:PropertyIsLessThanOrEqualTo><ns1:PropertyName>area</ns1:PropertyName><ns1:Literal>4</ns1:Literal></ns1:PropertyIsLessThanOrEqualTo></ns1:And></ns1:Filter><PolygonSymbolizer><Fill><CssParameter name="fill">#000000</CssParameter></Fill><Stroke><CssParameter name="stroke">#000000</CssParameter><CssParameter name="stroke-width">0.25</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke></PolygonSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></ns0:StyledLayerDescriptor>"""
+        
+
+
+
+
+
