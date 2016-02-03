@@ -379,14 +379,12 @@ class Range(object):
         pass
 
 
-    def equalInterval(self, min, max, intervals, precision):
+    def equalInterval(self, data, intervals, precision):
         """
         Returns equal intervals.
 
-        :param min: Lower limit of the interval.
-        :type min: Float
-        :param max: Upper limit of the interval.
-        :type max: Float
+        :param data: Array of data.
+        :type min: List
         :param intervals: Number of intervals.
         :type intervals: Integer
         :param precision: Precision of interval limits.
@@ -397,24 +395,24 @@ class Range(object):
         .. todo: This function was relocated from SLD and needs proper testing.
         """
 
-        min = float(min)
-        max = float(max)
+        minV = float(min(data))
+        maxV = float(max(data))
         
-        step = round((max-min)*1.00/intervals, precision)
+        step = round((maxV-minV)*1.00/intervals, precision)
         precisionStep = math.pow(10, -precision)
         out = []
         
         for i in range(0, intervals):
-            out.append([round(min+(i*step), precision),
-                        round(min+((i+1)*step)-precisionStep, precision)])
+            out.append([round(minV+(i*step), precision),
+                        round(minV+((i+1)*step)-precisionStep, precision)])
 
         # Redefine upper from last interval
-        out[-1][1] = max
+        out[-1][1] = maxV
 
         return out
 
 
-    def jenksInterval(self, data, intervals, precision):
+    def jenksInterval(self, data, intervals, precision, adjust=0.95, maxIterations=1000):
         """
         Returns Jenks intervals.
 
@@ -430,49 +428,86 @@ class Range(object):
         .. todo:: create exception, for example to use in this method
         """
 
+        # If there are less data than intervals, quit
         if len(data)<intervals:
             return None
 
+        # Prepare data for precision and sor data
         data = [round(i, precision) for i in data]
         data = sorted(data)
-        print data
 
-        
-        print self._sdam(data)
+        # First interval approach: evenly distributed
+        intervals = self._divideEvenly(data, intervals)
+        gvf = 0
+        iterations = 0
 
-        # Breaks means "break after the designated place in the data array
-        # Create an evenly distributed initial break
-        # step = len(data)/intervals
-        # print "Step", step
+        # Iterate until a good fit or max iterations
+        while gvf<adjust and iterations<maxIterations:
+            # Calculate the global square deviations from the array mean
+            sdam = self._sdam(data)
 
-        # breaks = [i*step for i in range(0, intervals-1)]
-        
-        # #         breaks = 
+            # Calculate the square deviations for each interval
+            sdcm = 0
+
+            for i in intervals:
+                sdcm = sdcm+self._sdam(i)
+
+            # Calculate the goodness of variance fit
+            gvf = (sdam-sdcm)/sdam
+
+            # If not good, identify the most disparate interval and swap
+            # the starting or trailing value with the best fit neighbor
+            # at left or right
+            if gvf<adjust:
+                # List of square deviations for each interval
+                sdams = [self._sdam(i) for i in intervals]
+
+                # Max square deviation interval
+                maxSdams = sdams.index(max(sdams))
+
+                # Check square deviations for neighbours
+                sdamLeft = sdams[maxSdams-1] if maxSdams>0 else sdams[maxSdams]
+                sdamRight = sdams[maxSdams+1] if maxSdams<(len(sdams)-1) else sdams[maxSdams]
+
+                # Swap starting or trailing element with the best neighbour
+                if sdamLeft<sdamRight:
+                    value = intervals[maxSdams][0]
+                    intervals[maxSdams-1].append(value)
+                    intervals[maxSdams] = intervals[maxSdams][1:]
+                else:
+                    value = intervals[maxSdams][-1]
+                    intervals[maxSdams+1].insert(0, value)
+                    intervals[maxSdams] = intervals[maxSdams][0:-1]
+
+            # Iterate, just in case
+            iterations+=1
 
 
-        self._divideEvenly(data, intervals)
+        # Check resulting intervals. Sometimes fewer intervals will be returned
+        # (for example, in highly monotone series)
+        intervals = [list([i[0],i[-1]]) for i in intervals]
 
-        # sorted([random.randint(0, len(data)-2) for i in range(0, intervals-1)])
-
-        print "len(data)", len(data)
-        
-        print "Breaks", breaks
-                
-        return 1
+        return intervals
 
 
     def _divideEvenly(self, data, intervals):
-        out = []
+        """
+        Divides data in equal intervals for an initial approach to Jenks.
+        """
         size = len(data)/intervals
+        out = [[0, size]]
 
-        print "Size", size
-        
-        for i in range(0, intervals-1):
-            out.append(i*size)
+        if intervals>1:
+            for i in range(1, intervals-1):
+                a = [out[i-1][1], out[i-1][1]+size]
+                out.append(a)
+                
+            out.append([out[-1][1], len(data)])
 
-        print "Last", out[-1]
+            return [data[a[0]:a[1]] for a in out]
+        else:
+            return [data]
 
-        print "Out", out
 
     def _sdam(self, data):
         """
@@ -480,9 +515,6 @@ class Range(object):
         """
 
         m = sum(data)/len(data)
-
-        print m
-        
         return sum([math.pow(i-m, 2) for i in data])
 
     
