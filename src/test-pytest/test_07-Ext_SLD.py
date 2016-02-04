@@ -68,6 +68,14 @@ class TestExtSld:
         
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsGreaterThan xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThan>"""
 
+        s = sld.GsSldCondition("GTOE", "afield", "30.2")
+        
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsGreaterThanOrEqualTo xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThanOrEqualTo>"""
+
+        s = sld.GsSldCondition("LTOE", "afield", "30.2")
+        
+        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsLessThanOrEqualTo xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsLessThanOrEqualTo>"""
+
 
     def test_createFilter(self):
         """
@@ -144,6 +152,41 @@ class TestExtSld:
         assert s.jenksInterval([4,5,9,10], \
                                3, 1, adjust=0.95)==[[4.0, 4.9], [5.0, 8.9], [9.0, 10.0]]
 
+
+    def test_ranges(self):
+        """
+        Test different range calculations.
+        """
+
+        s = sld.Range()
+
+        a = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
+
+        for i in range(0, 1):
+            print 
+            print s.jenksInterval(a, 3, 0, bestPopulation=5, maxIterations=1, mutatedIntervals=10,
+                                maxMutations=10)
+            print
+            
+        # print s.equalInterval(a, 4, 1)
+
+        # a = [[1,2,3,4],[5,6,7,8]]
+
+        # import copy
+        # b = copy.deepcopy(a)
+        # s.switchElement(b, 1, 0)
+
+        # print a
+        # print b
+
+        # s.switchElement(b, 0, 1)
+        # s.switchElement(b, 0, 1)
+
+        # print a
+        # print b
+        # print
+        # print
+        
 
     def test_createColorRamp(self):
         """
