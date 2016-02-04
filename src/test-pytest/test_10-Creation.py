@@ -137,7 +137,7 @@ class TestCreation:
 
         # Create first part of the color ramp, up to a data of 3.000.000, in 5 steps
         s = sld.Range()
-        range00 = s.equalInterval(r[0], 3000000, 5, 2)
+        range00 = s.equalInterval([r[0], 3000000], 5, 2)
 
         # Modify the lowest interval a little bit, so SLD conditions take into
         # account the smallest area
@@ -149,7 +149,7 @@ class TestCreation:
         # Create the second part of the color ramp, from 3.000.000 to up, in 5 steps
         # Create 6 colors to discart the first one when joining the two parts of the
         # ramp
-        range01 = s.equalInterval(3000000.01, r[1], 5, 2)
+        range01 = s.equalInterval([3000000.01, r[1]], 5, 2)
         cr01 = color.colorRamp("#f0e9da", "#018571", 6)
 
         range00.extend(range01)

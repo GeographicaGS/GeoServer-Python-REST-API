@@ -383,13 +383,13 @@ class Range(object):
         """
         Returns equal intervals.
 
-        :param data: Array of data.
+        :param data: Array of data. Just pass [min, max] in case min and max are already know, for example by the function getColumnMinMax in PostGIS submodule.
         :type min: List
         :param intervals: Number of intervals.
         :type intervals: Integer
         :param precision: Precision of interval limits.
         :type precision: Integer
-        :return: A list of lists containing the interval limits.
+        :return: A list of lists containing the interval limits as closed intervals on both extremes.
         :rtype: List
 
         .. todo: This function was relocated from SLD and needs proper testing.
@@ -422,7 +422,7 @@ class Range(object):
         :type intervals: Integer
         :param precision: Number of decimals to be used.
         :type precision: Integer
-        :return: A list of lists containing the interval limits.
+        :return: A list of lists containing the interval limits as closed intervals on both extremes.
         :rtype: List
 
         .. todo:: create exception, for example to use in this method
@@ -485,8 +485,23 @@ class Range(object):
 
         # Check resulting intervals. Sometimes fewer intervals will be returned
         # (for example, in highly monotone series)
-        intervals = [list([i[0],i[-1]]) for i in intervals]
+        intervals = [[i[0],i[-1]] for i in intervals]
+        precisionStep = math.pow(10, -precision)
 
+        print intervals
+
+        last = intervals[-1]
+        intervals = [[intervals[i][0],intervals[i+1][0]-precisionStep] \
+                      for i in range(0, len(intervals)-1)]
+
+        intervals.append(last)
+
+        print intervals
+
+        intervals = [i for i in intervals if i[0]<i[1]]
+
+        print intervals
+        
         return intervals
 
 
