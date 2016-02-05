@@ -174,6 +174,42 @@ class GsPostGis(object):
         return [results[0], results[1]]
 
 
+    def getColumnData(self, schema, table, column, sort=False, reverse=False, distinct=False):
+        """
+        Returns a list with all values present in the given column.
+
+        :param schema: Table schema name.
+        :type schema: String
+        :param table: Table name.
+        :type table: String
+        :param column: Column name.
+        :type column: String
+        :param sort: If the data should be sorted by the database.
+        :type sort: Boolean
+        :param reverse: If the data should be reverse sorted by the database.
+        :type reverse: Boolean
+        :param distinct: If the data should be returned unique by the database.
+        :type distinct: Boolean
+        :return: A List with all values.
+        :rtype: List
+        """
+
+        cur = self._conn.cursor()
+
+        # Construct SQL query
+        distinctSql = "distinct" if distinct else ""
+        sortSql = "order by %s" % column if sort else ""
+        sortSql = sortSql+" desc" if sort and reverse else sortSql
+        sql = "select %s %s from %s.%s %s;"
+
+        # Execute
+        cur.execute(sql, (AsIs(distinctSql), AsIs(column), AsIs(schema), AsIs(table), \
+                          AsIs(sortSql)))
+
+        # Return an array with values
+        return [i[0] for i in cur.fetchall()]
+                          
+        
     def analyzeGeomColumnFromTable(self, schema, table, geomColumn):
         """
         Analyzes a geometry column for basic statistics and coherency in a given table.

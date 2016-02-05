@@ -177,10 +177,6 @@ class TestQuery:
 
     def test_getLayer(self):
         r = self.gsi.getLayer("municipio")
-
-        print
-        print r
-        print 
         
         assert isinstance(r, dict)
         assert "layer" in r.keys()
@@ -211,7 +207,3 @@ class TestQuery:
         """
             
         r = self.gsi.getLayerStyles("municipios_area")
-
-        print
-        print r
-

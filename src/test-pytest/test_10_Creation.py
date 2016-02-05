@@ -125,7 +125,7 @@ class TestCreation:
         assert r==200
 
 
-    def test_createComplexLayer(self):
+    def test_createComplexLayer00(self):
         """
         Creates a complex style based on a double color ramp from a column in PostgreSQL.
         """
@@ -219,4 +219,94 @@ class TestCreation:
                                           defaultStyle="municipio_area")
 
         assert gsresponse==200
+        
+
+    def test_createComplexLayer01(self):
+        """
+        Creates a complex style based on a Jenks clasification for area.
+        """
+        num_intervals = 6
+        
+        # Take range in PostgreSQL column
+        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
+        r = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi.close()
+
+        # Create first part of the color ramp, up to a data of 3.000.000, in 5 steps
+        s = sld.Range()
+        intervals = s.jenksInterval(r, num_intervals, 2)
+
+        print
+        print "Intervals: ", intervals
+
+        color = sld.Color()
+        cr = color.colorRamp("#a6611a", "#f0e9da", num_intervals)
+
+        print "Colors: ", cr
+        
+        # Generate stroke symbol
+        stroke = sld.GsSldStrokeSymbolizer("#333333", 0.1, "bevel")
+
+        # The final featureTypeStyle
+        featureTypeStyle = sld.GsSldFeatureTypeStyle()
+        
+        # Generate ruled style
+        for i in range(0, num_intervals):
+            # Generate fill
+            fill = sld.GsSldFillSymbolizer(cr[i])
+
+            # Generate poly symbol
+            poly = sld.GsSldPolygonSymbolizer()
+            poly.addSymbol(fill)
+            poly.addSymbol(stroke)
+
+            # Generate rule condition
+            c0 = sld.GsSldCondition("GTOE", "area", intervals[i][0])
+            c1 = sld.GsSldCondition("LTOE", "area", intervals[i][1])
+            c0.composite(c1, "And")
+
+            # Generate the filter
+            filter = sld.GsSldFilter()
+            filter.addCondition(c0)
+
+            # Create rule
+            rule = sld.GsSldRule("Areas %s" % i, \
+                                 "Municipios con área entre %s y %s" % \
+                                 (intervals[i][0], intervals[i][1]))
+            rule.addSymbolizer(poly)
+            rule.addFilter(filter)
+
+            featureTypeStyle.addRule(rule)
+
+        # Create user style
+        userStyle = sld.GsSldUserStyle("municipio_area")
+        userStyle.addFeatureTypeStyle(featureTypeStyle)
+
+        # Create named layer
+        namedLayer = sld.GsSldNamedLayer("municipio_area")
+        namedLayer.addUserStyle(userStyle)
+
+        # Final SLD
+        root = sld.GsSldRoot()
+        root.addNamedLayer(namedLayer)
+            
+        # Upload style
+        gsresponse = self.gsi.createStyle("municipio_area_jenks", str(root))
+        assert gsresponse==200
+
+        # Create feature type from PostGIS table
+        ft = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
+                                                        "new_postgis_ds", \
+                                                        "municipio", \
+                                                        "geom", "municipios_area_jenks",
+                                                        u"Municipios de Andalucía por área por Jenks", \
+                                                        "postgres")
+
+        assert ft==201
+
+        gsresponse = self.gsi.updateLayer("municipios_area_jenks", styles=["municipio_area_jenks"], \
+                                          defaultStyle="municipio_area_jenks")
+
+        assert gsresponse==200
+        
         

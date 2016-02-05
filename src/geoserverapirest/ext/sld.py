@@ -383,13 +383,13 @@ class Range(object):
 
     def equalInterval(self, data, intervals, precision):
         """
-        Returns equal intervals.
+        Returns equal intervals. A list of lists of two floats is returned, each a closed interval.
 
         :param data: Array of data. Just pass [min, max] in case min and max are already know, for example by the function getColumnMinMax in PostGIS submodule.
         :type min: List
         :param intervals: Number of intervals.
         :type intervals: Integer
-        :param precision: Precision of interval limits.
+        :param precision: Precision of interval limits, in decimal places.
         :type precision: Integer
         :return: A list of lists containing the interval limits as closed intervals on both extremes.
         :rtype: List
@@ -413,212 +413,122 @@ class Range(object):
 
         return out
 
-
-        
     
-    def jenksInterval(self, data, intervals, precision, bestOf=10, iterateSearch=10000, \
-                      bestPopulation=10, mutatedChildrens=2, maxMutations=5):
+    def jenksInterval(self, data, intervals, precision, initialPopulation=50, bestOf=50, \
+                      generations=2, bestPopulation=5, mutatedChildrens=2, maxMutations=10):
         """
-        Returns Jenks intervals.
+        Returns Jenks intervals. A list of lists of two floats is returned, each a closed interval.
 
         :param data: The data sequence.
         :type data: List
-        :param intervals: Number of intervals to be computed.
+        :param intervals: Number of intervals to be computed. Must be less than the different values in the dataset minus one and greater than 0
         :type intervals: Integer
         :param precision: Number of decimals to be used.
         :type precision: Integer
-        :return: A list of lists containing the interval limits as closed intervals on both extremes.
+        :return: A list of lists containing the interval limits as closed intervals on both extremes. None if more intervals than data where asked.
         :rtype: List
 
         .. todo:: create exception, for example to use in this method
+        .. todo:: review parameters
         """
         
         # Prepare data for precision, erase duplicates and sort data
-        # print data
-        
-        data = list(set([round(i, precision) for i in data]))
-        data = sorted(data)
+        data = sorted(list(set([round(i, precision) for i in data])))
 
-        # print data
-                
-        # If there are less data than intervals, quit
-        if len(data)<intervals:
+        # If intervals is greater than the number of different data -1, return None
+        if len(data)-1<intervals or intervals<1:
             return None
 
-        # Trivial case: one group
+        # If intervals is 1, return the data set
         if intervals==1:
-            return [data]
-
-        inter = self._divideEvenly(data, intervals)
-        initial = {"intervals": inter, "gvf": self._gvf(data, inter)}
-
-        bestFinal = copy.deepcopy(initial)
+            return [[data[0],data[-1]]]
         
-        # print
-        # print 
-        # print "Initial intervals:"
-        # print initial
-                
+        # Dummy best candidate
+        bestFinal = {"intervals": [], "gvf": 0}
         bestIterations = 0
 
+        # This is the start of a consecutive search for a best solution
         while bestIterations<bestOf:
-            # print
-            # print "Best iteration", bestIterations
+
+            # Initial population: a bunch of different random intervalization
+            population = []
+            for p in range(0, initialPopulation):
+                # First slice point within the dataset
+                slicePoints = [random.randint(0, random.randint(1,len(data)-intervals))]
+
+                # Based on the first one, the intermediate
+                [slicePoints.append(random.randint(slicePoints[i-1]+1, len(data)-intervals+i)) \
+                for i in range(1, intervals)]
+
+                # Final random intervals
+                # First
+                slices = [data[0:slicePoints[0]+1]]
+
+                # Intermediate ones
+                [slices.append(data[slicePoints[i]+1:slicePoints[i+1]+1]) \
+                for i in range(0, len(slicePoints)-2)]
+
+                # Last one
+                slices.append(data[slicePoints[-2]+1:])
+
+                # Append to population
+                population.append({"intervals": slices, "gvf": self._gvf(data, slices)})
             
-
-            # First population, copies of equal intervals
-
-            # print "Initial population:"
-            # print
-            
-            population = [initial for i in range(0, bestPopulation)]
-
-            # bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
-
-            # print population
-            # print
-
-
-
-            iterations = 0
+            generation = 0
                     
-            # Iterate until a good fit or max iterations
-            while iterations<iterateSearch:
-                # Get best population
-                # print
-                # print
-                # print "Search iteration ", iterations
-
-
-                # print
-                # print "Initial population"
-                # print population
-            
+            # Iterate generations for a local optima
+            while generation<generations:
+                # Select the fittest among the current population
                 best = sorted([i["gvf"] for i in population], reverse=True)[0:bestPopulation]
-
-
-                # print
-                # print "Best GVF"
-                # print best
-
-
-
                 population = [i for i in population if i["gvf"] in best]
 
-                # print
-                # print "Selected population"
-                # print population
-
-                # print
-                # print
-                # print "Mutation process"
-
+                # Create a new population for mutated childrens
                 newPopulation = []
-                for i in population:
-                    # print
-                    # print "Mutating: ", i
 
+                # Iterate current population for mutated childrens
+                for i in population:
+                    # Generate mutated childrens for current solution
                     for m in range(0, mutatedChildrens):
+                        # Copy father
                         inter = copy.deepcopy(i["intervals"])
 
+                        # Initiate mutation sequence
                         for n in range(0, maxMutations):
                             index = random.randint(0,len(inter)-1)
                             side = random.randint(0,1)
-                        
                             self._switchElement(inter, index, side)
 
-                        # print
-                        # print "Mutated ", i["intervals"]
-                        # print "into ", inter
-
-                        # print
-
+                        # Add new mutated children to the new population
                         candidate = {"intervals": inter, "gvf": self._gvf(data, inter)}
-
-                        # print candidate
-                    
-                        # print "Adding new candidate"
-
-                    
                         newPopulation.append(candidate)
 
-                        
+                # Append new population to the latter generation
                 population.extend(newPopulation)
-                bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
 
-                    
-                bestFit = [i for i in population if i["gvf"]==bestGvf][0]
-                        
-                                
-                iterations+=1
+                # Iterate next generation
+                generation+=1
 
+            # Get the best of last generation
+            bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
+            bestFit = [i for i in population if i["gvf"]==bestGvf][0]
+
+            # Substitute if better
             if bestFit["gvf"]>bestFinal["gvf"]:
                 bestFinal = copy.deepcopy(bestFit)
                 
             bestIterations+=1
                                 
-                        
-        # print
-        # print
-        # print
-        # print "Final"
-        return bestFinal
-
-
-
-
-            
-
-                
-
-
-        # # print
-        # # print
-        # # print "Final"
-        # # print data
-        # # print
-
-
-    
-        # # print final
-
-        # # print [self._sdam(i) for i in final["intervals"]]
-
-        # # print self._gvf(data, final["intervals"])
-
-        # # Check resulting intervals. Sometimes fewer intervals will be returned
-        # # (for example, in highly monotone series)
-
-        # # print
-        # # print
-        # # print "B", intervals
-        # # intervals = [[i[0],i[-1]] for i in intervals]
-
-        # # print "A", intervals 
+        # Get the best among all iterations and all generations and prepare final
+        # response as closed intervals of values
+        ranges = []
+        for i in bestFinal["intervals"]:
+            if len(i)==1:
+                ranges.append([i[0],i[0]])
+            else:
+                ranges.append([i[0],i[-1]])
         
-        # # precisionStep = math.pow(10, -precision)
-        
-        # # last = intervals[-1]
-        
-        # # intervals = [[intervals[i][0],intervals[i+1][0]-precisionStep] \
-        # #               for i in range(0, len(intervals)-1)]
-                      
-        # # intervals.append(last)
-        
-        # # intervals = [i for i in intervals if i[0]<i[1]]
+        return ranges
 
-        # # print
-        # # print
-        # # print "Final"
-        # # return intervals
-
-        # return final
-
-        return None
-
-
-
-    
     
     def _switchElement(self, intervals, index, leftRight):
         """

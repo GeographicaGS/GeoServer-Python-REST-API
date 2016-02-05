@@ -2,6 +2,7 @@
 # coding=UTF-8
 
 import geoserverapirest.ext.postgis as pg
+import test_data as td
 reload(pg)
 
 """
@@ -27,7 +28,7 @@ class TestExtPostGis:
 
         r = self.pgi.getFieldsFromTable("data", "municipio", "geom")
         self.pgi.close()
-
+       
         assert isinstance(r, dict)
         assert "attributes" in r.keys()
 
@@ -92,6 +93,28 @@ class TestExtPostGis:
         r = self.pgi.getColumnMinMax("data", "municipio", "area")
         self.pgi.close()
         assert r == [1647885.88, 1254911103.14]
+
+
+    def test_getColumnData(self):
+        """
+        Test getColumnData.
+        """
+
+        rAll = self.pgi.getColumnData("data", "municipio", "area")
+        rSorted = self.pgi.getColumnData("data", "municipio", "area", sort=True)
+        rSortedReverse = self.pgi.getColumnData("data", "municipio", "area", sort=True, \
+                                                reverse=True)
+        rDistinctSorted = self.pgi.getColumnData("data", "municipio", "area", sort=True, \
+                                                    distinct=True)
+        self.pgi.close()
+
+        assert rAll == td.rAll
+
+        assert rSorted == td.rSorted
+
+        assert rSortedReverse == td.rSortedReverse
+
+        assert rDistinctSorted == td.rDistinctSorted
 
 
     def test_analyzeGeomColumnFromTable(self):

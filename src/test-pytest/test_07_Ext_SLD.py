@@ -144,67 +144,35 @@ class TestExtSld:
         """
 
         s = sld.Range()
+
+        data = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
+
+        assert s.jenksInterval(data, 1, 0) == [[1.0, 1001.0]]
         
-        assert s.jenksInterval([4,5,9,10,3,2,3,4,3,3,3,32,2,3,3,2,3,3,4,3,2,2,3,3,3,2,3,3,3,2,2,3,3,2], \
-                               7, 1, adjust=0.95)== \
-                               [[2.0, 2.9], [3.0, 9.9], [10.0, 32.0]]
-                                
-        assert s.jenksInterval([4,5,9,10], \
-                               3, 1, adjust=0.95)==[[4.0, 4.9], [5.0, 8.9], [9.0, 10.0]]
+        assert s.jenksInterval(data, 2, 0) == [[1.0, 332.0], [1001.0, 1001.0]]
+           
+        assert s.jenksInterval(data, 3, 0) == [[1.0, 56.0], [231.0, 332.0], [1001.0, 1001.0]]
 
+        assert s.jenksInterval(data, 4, 0) == [[1.0, 56.0], [231.0, 232.0], \
+                                              [332.0, 332.0], [1001.0, 1001.0]]
+                                              
+        assert s.jenksInterval(data, 5, 0) == [[1.0, 7.0], [32.0, 56.0], [231.0, 232.0], \
+                                               [332.0, 332.0], [1001.0, 1001.0]]
 
-    def test_ranges(self):
-        """
-        Test different range calculations.
-        """
+        assert s.jenksInterval(data, 6, 0) in [[[1.0, 7.0], [32.0, 44.0], [54.0, 56.0], \
+                                                [231.0, 232.0], [332.0, 332.0], [1001.0, 1001.0]], \
+                                                [[1.0, 7.0], [32.0, 34.0], [44.0, 56.0], \
+                                                [231.0, 232.0], [332.0, 332.0], [1001.0, 1001.0]]]
 
-        s = sld.Range()
+        assert s.jenksInterval(data, 7, 0) == [[1.0, 7.0], [32.0, 34.0], [44.0, 44.0], \
+                                               [54.0, 56.0], [231.0, 232.0], \
+                                               [332.0, 332.0], [1001.0, 1001.0]]
 
-        a = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
+        assert s.jenksInterval(data, -1, 0) == None
 
-        # b = [a, a, a]
-
-        # a[0]=23
-
-        # print b
-        
-        # print len(a)
-        
-        # s.a(10, a)
+        assert s.jenksInterval(data, 17, 0) == None
 
         
-        for i in range(0, 25):
-            print 
-            print s.jenksInterval(a, 4, 0, bestOf=15, iterateSearch=5, bestPopulation=3, \
-                                    mutatedChildrens=3, maxMutations=10)
-            print
-
-
-        # print
-        # print s.jenksInterval(a, 3, 0)
-        # print
-
-                        
-        # print s.equalInterval(a, 4, 1)
-
-        # a = [[1,2,3,4],[5,6,7,8]]
-
-        # import copy
-        # b = copy.deepcopy(a)
-        # s.switchElement(b, 1, 0)
-
-        # print a
-        # print b
-
-        # s.switchElement(b, 0, 1)
-        # s.switchElement(b, 0, 1)
-
-        # print a
-        # print b
-        # print
-        # print
-        
-
     def test_createColorRamp(self):
         """
         Test the creation of a color ramp.
