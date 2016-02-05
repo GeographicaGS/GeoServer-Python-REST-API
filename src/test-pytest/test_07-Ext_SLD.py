@@ -162,12 +162,29 @@ class TestExtSld:
 
         a = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
 
-        for i in range(0, 1):
+        # b = [a, a, a]
+
+        # a[0]=23
+
+        # print b
+        
+        # print len(a)
+        
+        # s.a(10, a)
+
+        
+        for i in range(0, 25):
             print 
-            print s.jenksInterval(a, 3, 0, bestPopulation=5, maxIterations=1, mutatedIntervals=10,
-                                maxMutations=10)
+            print s.jenksInterval(a, 4, 0, bestOf=15, iterateSearch=5, bestPopulation=3, \
+                                    mutatedChildrens=3, maxMutations=10)
             print
-            
+
+
+        # print
+        # print s.jenksInterval(a, 3, 0)
+        # print
+
+                        
         # print s.equalInterval(a, 4, 1)
 
         # a = [[1,2,3,4],[5,6,7,8]]

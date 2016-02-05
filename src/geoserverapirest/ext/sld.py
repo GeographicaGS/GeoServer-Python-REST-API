@@ -414,169 +414,10 @@ class Range(object):
         return out
 
 
-    def jenksInterval2(self, data, intervals, precision, adjust=0.99, maxIterations=10000, \
-                      bestPopulation=10, mutatedIntervals=2, maxMutations=5):
-        """
-        Returns Jenks intervals.
-
-        :param data: The data sequence.
-        :type data: List
-        :param intervals: Number of intervals to be computed.
-        :type intervals: Integer
-        :param precision: Number of decimals to be used.
-        :type precision: Integer
-        :return: A list of lists containing the interval limits as closed intervals on both extremes.
-        :rtype: List
-
-        .. todo:: create exception, for example to use in this method
-        """
         
-        # Prepare data for precision, erase duplicates and sort data
-        # print data
-        
-        data = list(set([round(i, precision) for i in data]))
-        data = sorted(data)
-
-        # print data
-                
-        # If there are less data than intervals, quit
-        if len(data)<intervals:
-            return None
-
-        # Trivial case: one group
-        if intervals==1:
-            return [data]
-        
-        # First interval approach: evenly distributed
-        intervals = self._divideEvenly(data, intervals)
-        iterations = 0
-
-        # First population, copies of equal intervals
-
-        # print "Initial population:"
-        # print
-        
-        population = [{"intervals": intervals, "gvf": self._gvf(data,intervals)} \
-                        for i in range(0, bestPopulation)]
-
-        bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
-
-        # print population
-        # print
-        
-        # Iterate until a good fit or max iterations
-        while iterations<maxIterations:
-            # Get best population
-            # print
-            # print
-            # print "Iteration ", iterations
-
-            # print
-            # print "Initial population"
-            # print population
-            
-            best = sorted([i["gvf"] for i in population], reverse=True)[0:bestPopulation]
-                        
-            # print
-            # print "Best GVF"
-            # print best
-
-            population = [i for i in population if i["gvf"] in best]
-
-            # print
-            # print "Selected population"
-            # print population
-
-            # print
-            # print
-            # print "Mutation process"
-
-            newPopulation = []
-            for i in population:
-                # print
-                # print "Mutating: ", i
-
-                for m in range(0, mutatedIntervals):
-                    inter = copy.deepcopy(i["intervals"])
-
-                    for n in range(0, maxMutations):
-                        index = random.randint(0,len(inter)-1)
-                        side = random.randint(0,1)
-                        
-                        self._switchElement(inter, index, side)
-
-                    # print
-                    # print "Mutated ", i["intervals"]
-                    # print "into ", inter
-
-                    # print
-
-                    candidate = {"intervals": inter, "gvf": self._gvf(data, inter)}
-
-                    # print candidate
-                    
-                    # print "Adding new candidate"
-
-                    
-                    newPopulation.append(candidate)
-
-
-            population.extend(newPopulation)
-            bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
-
-            
-            # Iterate, just in case
-            iterations+=1
-
-        # print
-        # print
-        # print "Final"
-        # print data
-        # print
-        
-        final = [i for i in population if i["gvf"]==bestGvf][0]
-
-
     
-        # print final
-
-        # print [self._sdam(i) for i in final["intervals"]]
-
-        # print self._gvf(data, final["intervals"])
-
-        # Check resulting intervals. Sometimes fewer intervals will be returned
-        # (for example, in highly monotone series)
-
-        # print
-        # print
-        # print "B", intervals
-        # intervals = [[i[0],i[-1]] for i in intervals]
-
-        # print "A", intervals 
-        
-        # precisionStep = math.pow(10, -precision)
-        
-        # last = intervals[-1]
-        
-        # intervals = [[intervals[i][0],intervals[i+1][0]-precisionStep] \
-        #               for i in range(0, len(intervals)-1)]
-                      
-        # intervals.append(last)
-        
-        # intervals = [i for i in intervals if i[0]<i[1]]
-
-        # print
-        # print
-        # print "Final"
-        # return intervals
-
-        return final
-
-
-
-
-    def jenksInterval(self, data, intervals, precision, adjust=0.99, maxIterations=10000, \
-                      bestPopulation=10, mutatedIntervals=2, maxMutations=5):
+    def jenksInterval(self, data, intervals, precision, bestOf=10, iterateSearch=10000, \
+                      bestPopulation=10, mutatedChildrens=2, maxMutations=5):
         """
         Returns Jenks intervals.
 
@@ -593,12 +434,12 @@ class Range(object):
         """
         
         # Prepare data for precision, erase duplicates and sort data
-        print data
+        # print data
         
         data = list(set([round(i, precision) for i in data]))
         data = sorted(data)
 
-        print data
+        # print data
                 
         # If there are less data than intervals, quit
         if len(data)<intervals:
@@ -607,151 +448,135 @@ class Range(object):
         # Trivial case: one group
         if intervals==1:
             return [data]
-        
-        # First interval approach: evenly distributed
+
         inter = self._divideEvenly(data, intervals)
-        iterations = 0
+        initial = {"intervals": inter, "gvf": self._gvf(data, inter)}
 
-        print
-        print "Initials: "
-        print inter, self._gvf(data, inter)
-
-        best = copy.deepcopy(inter)
-
+        bestFinal = copy.deepcopy(initial)
         
-        while iterations<maxIterations:
-            for a in range(0, intervals):
-                print
-                print "Testing left for ", a
-
-                # Do until left interval has len 1 (skip for interval 0)
-                while len(inter[a])>1 and a>0:
-                    self._switchElement(inter, a, 0)
-
-                    print "Testing ", inter, self._gvf(data, inter)
-
-                    if self._gvf(data, inter)>self._gvf(data, best):
-                        best = copy.deepcopy(inter)
-                        print "New best"
-
-
-                print
-                print "Testing right for ", a
-
-                # Do until right interval has len 1 (skip for interval -1)
-                while len(inter[a])>1 and a<intervals:
-                    self._switchElement(inter, a, 1)
-
-                    print "Testing ", inter, self._gvf(data, inter)
-
-                    if self._gvf(data, inter)>self._gvf(data, best):
-                        best = copy.deepcopy(inter)
-                        print "New best"
-                        
-                    
-
-                # print intervals, self._gvf(data, intervals)
+        # print
+        # print 
+        # print "Initial intervals:"
+        # print initial
                 
+        bestIterations = 0
+
+        while bestIterations<bestOf:
+            # print
+            # print "Best iteration", bestIterations
+            
+
+            # First population, copies of equal intervals
+
+            # print "Initial population:"
+            # print
+            
+            population = [initial for i in range(0, bestPopulation)]
+
+            # bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
+
+            # print population
+            # print
+
+
+
+            iterations = 0
+                    
+            # Iterate until a good fit or max iterations
+            while iterations<iterateSearch:
+                # Get best population
+                # print
+                # print
+                # print "Search iteration ", iterations
 
 
                 # print
-                # print "Testing left"
-                # print intervals, self._gvf(data, intervals)
-                
-                # if self._gvf(data, intervals)>self._gvf(data, best):
-                #     best = copy.deepcopy(intervals)
-                #     print "New best"
-
-                
-
-            iterations+=1
-                
+                # print "Initial population"
+                # print population
             
-        
-        # # First population, copies of equal intervals
+                best = sorted([i["gvf"] for i in population], reverse=True)[0:bestPopulation]
 
-        # # print "Initial population:"
-        # # print
-        
-        # population = [{"intervals": intervals, "gvf": self._gvf(data,intervals)} \
-        #                 for i in range(0, bestPopulation)]
 
-        # bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
+                # print
+                # print "Best GVF"
+                # print best
 
-        # # print population
-        # # print
-        
-        # # Iterate until a good fit or max iterations
-        # while iterations<maxIterations:
-        #     # Get best population
-        #     # print
-        #     # print
-        #     # print "Iteration ", iterations
 
-        #     # print
-        #     # print "Initial population"
-        #     # print population
-            
-        #     best = sorted([i["gvf"] for i in population], reverse=True)[0:bestPopulation]
+
+                population = [i for i in population if i["gvf"] in best]
+
+                # print
+                # print "Selected population"
+                # print population
+
+                # print
+                # print
+                # print "Mutation process"
+
+                newPopulation = []
+                for i in population:
+                    # print
+                    # print "Mutating: ", i
+
+                    for m in range(0, mutatedChildrens):
+                        inter = copy.deepcopy(i["intervals"])
+
+                        for n in range(0, maxMutations):
+                            index = random.randint(0,len(inter)-1)
+                            side = random.randint(0,1)
                         
-        #     # print
-        #     # print "Best GVF"
-        #     # print best
+                            self._switchElement(inter, index, side)
 
-        #     population = [i for i in population if i["gvf"] in best]
+                        # print
+                        # print "Mutated ", i["intervals"]
+                        # print "into ", inter
 
-        #     # print
-        #     # print "Selected population"
-        #     # print population
+                        # print
 
-        #     # print
-        #     # print
-        #     # print "Mutation process"
+                        candidate = {"intervals": inter, "gvf": self._gvf(data, inter)}
 
-        #     newPopulation = []
-        #     for i in population:
-        #         # print
-        #         # print "Mutating: ", i
-
-        #         for m in range(0, mutatedIntervals):
-        #             inter = copy.deepcopy(i["intervals"])
-
-        #             for n in range(0, maxMutations):
-        #                 index = random.randint(0,len(inter)-1)
-        #                 side = random.randint(0,1)
-                        
-        #                 self._switchElement(inter, index, side)
-
-        #             # print
-        #             # print "Mutated ", i["intervals"]
-        #             # print "into ", inter
-
-        #             # print
-
-        #             candidate = {"intervals": inter, "gvf": self._gvf(data, inter)}
-
-        #             # print candidate
+                        # print candidate
                     
-        #             # print "Adding new candidate"
+                        # print "Adding new candidate"
 
                     
-        #             newPopulation.append(candidate)
+                        newPopulation.append(candidate)
+
+                        
+                population.extend(newPopulation)
+                bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
+
+                    
+                bestFit = [i for i in population if i["gvf"]==bestGvf][0]
+                        
+                                
+                iterations+=1
+
+            if bestFit["gvf"]>bestFinal["gvf"]:
+                bestFinal = copy.deepcopy(bestFit)
+                
+            bestIterations+=1
+                                
+                        
+        # print
+        # print
+        # print
+        # print "Final"
+        return bestFinal
 
 
-        #     population.extend(newPopulation)
-        #     bestGvf = sorted([i["gvf"] for i in population], reverse=True)[0]
+
 
             
-        #     # Iterate, just in case
-        #     iterations+=1
+
+                
+
 
         # # print
         # # print
         # # print "Final"
         # # print data
         # # print
-        
-        # final = [i for i in population if i["gvf"]==bestGvf][0]
 
 
     
@@ -776,22 +601,21 @@ class Range(object):
         # # last = intervals[-1]
         
         # # intervals = [[intervals[i][0],intervals[i+1][0]-precisionStep] \
-        # # #               for i in range(0, len(intervals)-1)]
+        # #               for i in range(0, len(intervals)-1)]
                       
-        # # # intervals.append(last)
+        # # intervals.append(last)
         
-        # # # intervals = [i for i in intervals if i[0]<i[1]]
+        # # intervals = [i for i in intervals if i[0]<i[1]]
 
-        # # # print
-        # # # print
-        # # # print "Final"
-        # # # return intervals
+        # # print
+        # # print
+        # # print "Final"
+        # # return intervals
 
-        # # return final
+        # return final
 
         return None
 
-    
 
 
     
