@@ -413,7 +413,37 @@ class Range(object):
 
         return out
 
-    
+
+    def jenksMiddleInterval(self, data, sideIntervals, middleValue, precision, initialPopulation=50, bestOf=50, \
+                      generations=2, bestPopulation=5, mutatedChildrens=2, maxMutations=10):
+        """
+        Returns Jenks intervals partitioned with a middle value. A list of lists of two floats is returned, each a closed interval.
+
+        :param data: The data sequence.
+        :type data: List
+        :param intervals: Number of intervals to be computed. Must be less than the different values in the dataset minus one and greater than 0
+        :type sideIntervals: Integer
+        :param precision: Number of decimals to be used.
+        :type precision: Integer
+        :return: A list of lists containing the interval limits as closed intervals on both extremes. None if more intervals than data where asked.
+        :rtype: List
+
+        .. todo:: create exception, for example to use in this method
+        .. todo:: review parameters
+        """
+
+        bottomData = [i for i in data if i<middleValue]
+        topData =  [i for i in data if i>middleValue]
+
+        bottomRanges = self.jenksInterval(bottomData, sideIntervals, precision)
+        topRanges = self.jenksInterval(topData, sideIntervals, precision)
+
+        bottomRanges.append([middleValue, middleValue])
+        bottomRanges.extend(topRanges)
+
+        return bottomRanges
+
+        
     def jenksInterval(self, data, intervals, precision, initialPopulation=50, bestOf=50, \
                       generations=2, bestPopulation=5, mutatedChildrens=2, maxMutations=10):
         """
@@ -607,6 +637,20 @@ class Color(object):
 
         return [i.get_hex_l() for i in e]
 
+    
+    def colorDualRamp(self, initial, middle, final, sideSteps):
+        """
+        Returns a list with colors with a dual ramp.
+        """
+
+        low = list(colour.Color(initial).range_to(colour.Color(middle), sideSteps+1))
+        high = list(colour.Color(middle).range_to(colour.Color(final), sideSteps+1))
+
+        low[:-1].append(middle)
+        low.extend(high[1:])
+
+        return [i.get_hex_l() for i in low]
+
 
     
 class GsSldStyles(object):
@@ -616,66 +660,17 @@ class GsSldStyles(object):
     with a GeoServer instance from here.
     """
 
-    def continuousVariableMonoRamp(self, bottomFillColor, topFillColor, bottomBorderColor, \
-                                   topBorderColor, borderWidth, data, intervals, method, \
-                                   precision, columnData, ruleName, ruleTitle, \
-                                   ruleTitleLambda=lambda x: x):
+    def sldFromFeatureTypeStyle(self, featureTypeStyle):
+        """    
+        Returns a complete SLD from a featureTypeStyle.
         """
-        Returns a SLD for a continuous variable represented in intervals
-        with a monocolor ramp.
-
-        :param bottomFillColor: The lower color of the ramp in #RRGGBB format.
-        :type bottomFillColor: string
-        :param topFillColor: The top color of the ramp in #RRGGBB format.
-        :type topFillColor: string
-        :param bottomBorderColor: The lower color for the border.
-        :type bottomBorderColor: string
-        :param topBorderColor: The top color for the border.
-        :type topBorderColor: string
-        :param borderWidth: The border witdh.
-        :type borderWidth: float
-        :param data: The data to create intervals from.
-        :type data: List
-        :param intervals: Intervals to divide the data into.
-        :type intervals: integer
-        :param method: Method for creating intervals. Currently, "equal" or "jenks".
-        :type method: string
-        :param precision: Numeric precision for intervals.
-        :type precision: integer
-        :param columnData: Name of the data column.
-        :type columnData: string
-        :param ruleName: Rule name. Must have a positional argument %s.
-        :type ruleName: string
-        :param ruleTitle: Rule title. This is the one that appears in the legend. Must have two positional arguments %s for the min and max values in the interval.
-        :type ruleTitle: string
-        :param ruleTitleLambda: A lambda function to apply to the interval values for the rule title.
-        :type ruleTitleLambda: lambda
-        """
-
-        # Compute color ramps
-        color = Color()
-        crFill = color.colorRamp(bottomFillColor, topFillColor, intervals)
-        crBorder = color.colorRamp(bottomBorderColor, topBorderColor, intervals)
-
-        # Compute intervals
-        s = Range()
         
-        if method=="equal":
-            ranges = s.equalInterval([min(data), max(data)], intervals, precision)
-        elif method=="jenks":
-            ranges = s.jenksInterval(data, intervals, precision)
-
-        featureTypeStyle = GsSldFeatureTypeStyle()
-
-        self._getFeatureTypeStyle(featureTypeStyle, crFill, crBorder, borderWidth, columnData, \
-                                  ranges, ruleName, ruleTitle, ruleTitleLambda)
-                                  
         # Create user style
-        userStyle = GsSldUserStyle(columnData)
+        userStyle = GsSldUserStyle("Style")
         userStyle.addFeatureTypeStyle(featureTypeStyle)
 
         # Create named layer
-        namedLayer = GsSldNamedLayer(columnData)
+        namedLayer = GsSldNamedLayer("NamedLayer")
         namedLayer.addUserStyle(userStyle)
 
         # Final SLD
@@ -683,112 +678,10 @@ class GsSldStyles(object):
         root.addNamedLayer(namedLayer)
 
         return root
-
     
-    def continuousVariableDualRamp(self, bottomFillColor, middleFillColor, topFillColor, \
-                                   bottomBorderColor, middleBorderColor, topBorderColor, \
-                                   borderWidth, data, intervals, middleValue, method, \
-                                   precision, columnData, ruleName, ruleTitle, middleTitle, \
-                                   ruleTitleLambda=lambda x: x):
-        """
-        Returns a SLD for a continuous variable represented in intervals
-        with a monocolor ramp.
-
-        :param bottomFillColor: The lower color of the ramp in #RRGGBB format.
-        :type bottomFillColor: string
-        :param middleFillColor: The color for the middle of the color range.
-        :type middleFillColor: string
-        :param topFillColor: The top color of the ramp in #RRGGBB format.
-        :type topFillColor: string
-        :param bottomBorderColor: The lower color for the border.
-        :type bottomBorderColor: string
-        :param middleBorderColor: Border color for the central value.
-        :type middleBoderColor: string
-        :param topBorderColor: The top color for the border.
-        :type topBorderColor: string
-        :param borderWidth: The border witdh.
-        :type borderWidth: float
-        :param data: The data to create intervals from.
-        :type data: List
-        :param intervals: Intervals to divide the data into, at both sides of the middle value.
-        :type intervals: integer
-        :param middleValue: Value in the middle.
-        :type middleValue: float
-        :param method: Method for creating intervals. Currently, "equal" or "jenks".
-        :type method: string
-        :param precision: Numeric precision for intervals.
-        :type precision: integer
-        :param columnData: Name of the data column.
-        :type columnData: string
-        :param ruleName: Rule name. Must have a positional argument %s.
-        :type ruleName: string
-        :param ruleTitle: Rule title. This is the one that appears in the legend. Must have two positional arguments %s for the min and max values in the interval.
-        :type ruleTitle: string
-        :param middleTitle: Rule title for the central value.
-        :type middleTitle: string
-        :param ruleTitleLambda: A lambda function to apply to the interval values for the rule title.
-        :type ruleTitleLambda: lambda
-        """
-
-        # Compute color ramps
-        color = Color()
-        crFillBottom = color.colorRamp(bottomFillColor, middleFillColor, intervals+1)[:-1]
-        crBorderBottom = color.colorRamp(bottomBorderColor, middleBorderColor, intervals+1)[:-1]
-        crFillMiddle = [middleFillColor]
-        crBorderMiddle = [middleBorderColor]
-        crFillTop = color.colorRamp(middleFillColor, topFillColor, intervals+1)[1:]
-        crBorderTop = color.colorRamp(middleBorderColor, topBorderColor, intervals+1)[1:]
-
-        # Compute intervals
-        s = Range()
-
-        bottomData = [i for i in data if i<middleValue]
-        middleData = [i for i in data if i==middleValue]
-        topData =  [i for i in data if i>middleValue]
                 
-        if method=="equal":
-            bottomRanges = s.equalInterval([min(bottomData), max(bottomData)], intervals, precision)
-            middleRanges = [[middleValue, middleValue]]
-            topRanges = s.equalInterval([min(topData), max(topData)], intervals, precision)
-        elif method=="jenks":
-            bottomRanges = s.jenksInterval(bottomData, intervals, precision)
-            middleRanges = [[middleValue, middleValue]]
-            topRanges = s.jenksInterval(topData, intervals, precision)
-
-        featureTypeStyle = GsSldFeatureTypeStyle()
-
-        # Rules for bottom part of legend
-        self._getFeatureTypeStyle(featureTypeStyle, crFillBottom, crBorderBottom, \
-                                  borderWidth, columnData, bottomRanges, ruleName, \
-                                  ruleTitle, ruleTitleLambda)
-
-        # Rule for middle value
-        self._getFeatureTypeStyle(featureTypeStyle, crFillMiddle, crBorderMiddle, \
-                                  borderWidth, columnData, middleRanges, ruleName, \
-                                  middleTitle, ruleTitleLambda)
-
-        # Rules for top part of legend
-        self._getFeatureTypeStyle(featureTypeStyle, crFillTop, crBorderTop, \
-                                  borderWidth, columnData, topRanges, ruleName, \
-                                  ruleTitle, ruleTitleLambda) 
-                                                 
-        # Create user style
-        userStyle = GsSldUserStyle(columnData)
-        userStyle.addFeatureTypeStyle(featureTypeStyle)
-
-        # Create named layer
-        namedLayer = GsSldNamedLayer(columnData)
-        namedLayer.addUserStyle(userStyle)
-
-        # Final SLD
-        root = GsSldRoot()
-        root.addNamedLayer(namedLayer)
-
-        return root
-    
-
-    def _getFeatureTypeStyle(self, featureTypeStyle, fills, strokes, borderWidth, columnData, \
-                             ranges, ruleName, ruleTitle, ruleTitleLambda):
+    def createFeatureTypeStyle(self, featureTypeStyle, fills, strokes, borderWidths, columnData, \
+                                ranges, ruleTitles, ruleTitleLambdas=lambda x: x):
         """
         Gets a featureTypeStyle and appends rules based on fills, strokes, etc.
 
@@ -796,29 +689,43 @@ class GsSldStyles(object):
 
         :param featureTypeStyle: The Feature Type Style to attach rules to.
         :type featureTypeStyle: GsSldFeatureTypeStyle
-        :param fills: List of fills colors for each interval.
-        :type fills: List
-        :param strokes: List of stroke colors for each interval.
-        :type strokes: List
+        :param fills: List of fills colors for each interval. Also a string is possible, cloning the value for each interval.
+        :type fills: List or string
+        :param strokes: List of stroke colors for each interval. Also a string is possible, cloning the value for each interval.
+        :type strokes: List or string
+        :param borderWidths: List of border widths. Also a float is possible, cloning the value for each interval.
+        :type borderWidths: List or float
         :param columnData: Name of the column data.
         :type columnData: string
         :param ranges: List of range limits.
         :type ranges: List
-        :param ruleName: Rule name.
-        :type ruleName: string
-        :param ruleTitle: Rule title.
-        :type ruleTitle: string
-        :param ruleTitleLambda: Lambda to decorate values for rule title.
-        :type ruleTitleLambda: Lambda
+        :param ruleTitle: Rule title. Also a string is possible, cloning the value for each interval.
+        :type ruleTitle: List or string
+        :param ruleTitleLambdas: List of lambda to decorate values for rule title. Also a lambda is possible, cloning the value for each interval.
+        :type ruleTitleLambdas: List or Lambda
         """
 
+        # Check polymorphic parameter
+        fills = fills if isinstance(fills, list) else [fills for i in range(0, len(ranges))]
+        
+        strokes = strokes if isinstance(strokes, list) else [strokes for i in range(0, len(ranges))]
+        
+        ruleTitles = ruleTitles if isinstance(ruleTitles, list) \
+          else [ruleTitles for i in range(0, len(ranges))]
+          
+        ruleTitleLambdas = ruleTitleLambdas if isinstance(ruleTitleLambdas, list) \
+          else [ruleTitleLambdas for i in range(0, len(ranges))]
+          
+        borderWidths = borderWidths if isinstance(borderWidths, list) \
+          else [borderWidths for i in range(0, len(ranges))]
+                  
         # Generate style
-        for i in range(0, len(fills)):
+        for i in range(0, len(ranges)):
             # Generate fill
             fill = GsSldFillSymbolizer(fills[i])
 
             # Generate border
-            stroke = GsSldStrokeSymbolizer(strokes[i], borderWidth, "bevel")
+            stroke = GsSldStrokeSymbolizer(strokes[i], borderWidths[i], "bevel")
             
             # Generate poly symbol
             poly = GsSldPolygonSymbolizer()
@@ -835,12 +742,11 @@ class GsSldStyles(object):
             filter.addCondition(c0)
 
             # Create rule
-            name = ruleName % i if "%s" in ruleName else ruleName
-            title = ruleTitle % (ruleTitleLambda(ranges[i][0]), \
-                                    ruleTitleLambda(ranges[i][1])) if \
-                                    "%s" in ruleTitle else ruleTitle
+            title = ruleTitles[i] % (ruleTitleLambdas[i](ranges[i][0]), \
+                                     ruleTitleLambdas[i](ranges[i][1])) if \
+                                     "%s" in ruleTitles[i] else ruleTitles[i]
             
-            rule = GsSldRule(name, title)
+            rule = GsSldRule("Rule %s" % i, title)
             rule.addSymbolizer(poly)
             rule.addFilter(filter)
 

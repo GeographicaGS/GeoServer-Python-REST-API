@@ -172,6 +172,21 @@ class TestExtSld:
 
         assert s.jenksInterval(data, 17, 0) == None
 
+
+    def test_rangesJenksMiddleInterval(self):
+        """
+        Test Jenks with a middle breaking value.
+        """
+
+        s = sld.Range()
+
+        data = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
+
+        assert s.jenksMiddleInterval(data, 4, 50, 0) == [[1.0, 3.0], [4.0, 7.0], [32.0, 34.0], \
+                                                         [44.0, 44.0], [50, 50], [54.0, 56.0], \
+                                                         [231.0, 232.0], [332.0, 332.0], \
+                                                         [1001.0, 1001.0]]
+        
         
     def test_createColorRamp(self):
         """
@@ -182,6 +197,18 @@ class TestExtSld:
         cr = s.colorRamp("#2812ef", "#8e2f9c", 10)
 
         assert cr==['#2812ef', '#3b15e6', '#4e19dc', '#5d1dd2', '#6b20c9', '#7624bf', '#7f27b6', '#862aad', '#8b2ca5', '#8e2f9c']
+
+
+    def test_createDualColorRamp(self):
+        """
+        Test the creation of a dual color ramp.
+        """
+
+        s = sld.Color()
+        cr = s.colorDualRamp("#2812ef", "#ffffff", "#8e2f9c", 4)
+        
+        assert cr==['#2812ef', '#62d5de', '#a4dba7', '#e6e6d8', '#ffffff', '#dcded3', \
+                    '#9ec7b0', '#5e7eba', '#8e2f9c']
 
         
     def test_createFullSld00(self):
