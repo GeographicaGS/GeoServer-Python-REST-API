@@ -26,13 +26,15 @@ class TestQuery:
     def test_queryStylesNames(self):
         r = self.gsi.getStyleNames()
         assert set(r)==set([u"generic", u"point", u"line", u"polygon", u"raster", u"new_style", \
-                            u"municipio_area"])
+                            u"municipio_area", u"municipio_area_jenks", \
+                            u"municipio_area_monoramp", u"municipio_area_dualramp"])
 
 
     def test_queryFeatureTypeNames(self):
         r = self.gsi.getFeatureTypeNames("new_workspace", "new_postgis_ds")
         assert set(r)==set([u"municipio", u"municipios_cordoba", u"municipios_sevilla", \
-                            u"municipios_area"])
+                            u"municipios_area", u"municipios_area_jenks", \
+                            u"municipios_area_monoramp", u"municipios_area_dualramp"])
 
 
     def test_queryDataStoresNames(self):
@@ -171,8 +173,10 @@ class TestQuery:
 
 
     def test_getLayerNames(self):
-        r = self.gsi.getLayerNames()
-        assert r==[u"municipio", u"municipios_sevilla", u"municipios_cordoba", u"municipios_area"]
+        r = set(self.gsi.getLayerNames())
+        assert r==set([u"municipios_area_dualramp", u"municipio", u"municipios_sevilla", \
+                       u"municipios_cordoba", u"municipios_area", \
+                       u"municipios_area_jenks", u"municipios_area_monoramp"])
 
 
     def test_getLayer(self):

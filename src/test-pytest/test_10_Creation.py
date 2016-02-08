@@ -236,14 +236,9 @@ class TestCreation:
         s = sld.Range()
         intervals = s.jenksInterval(r, num_intervals, 2)
 
-        print
-        print "Intervals: ", intervals
-
         color = sld.Color()
         cr = color.colorRamp("#a6611a", "#f0e9da", num_intervals)
 
-        print "Colors: ", cr
-        
         # Generate stroke symbol
         stroke = sld.GsSldStrokeSymbolizer("#333333", 0.1, "bevel")
 
@@ -309,4 +304,82 @@ class TestCreation:
 
         assert gsresponse==200
         
+
+    def test_continuousVariableMonoRamp(self):
+        """
+        Test creation of a continuous variable monoramp style.
+        """
+        num_intervals = 3
         
+        # Take range in PostgreSQL column
+        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
+        r = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi.close()
+
+        # Create style
+        s = sld.GsSldStyles()
+
+        r = s.continuousVariableMonoRamp("#4a4140", "#dedece", "#525252", "#525252", 0.15, r,
+                                            num_intervals, "jenks", 3, "area", "Areas %s", \
+                                            "Área entre %s y %s km2", \
+                                            ruleTitleLambda=lambda x: round(x/1000000, 1))
+
+        gsresponse = self.gsi.createStyle("municipio_area_monoramp", str(r))
+        assert gsresponse==200
+
+        # Create feature type from PostGIS table
+        ft = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
+                                                        "new_postgis_ds", \
+                                                        "municipio", \
+                                                        "geom", "municipios_area_monoramp",
+                                                        u"Municipios de Andalucía por área por Jenks con una rampa monocolor.", \
+                                                        "postgres")
+
+        assert ft==201
+
+        gsresponse = self.gsi.updateLayer("municipios_area_monoramp", \
+                                          styles=["municipio_area_monoramp"], \
+                                          defaultStyle="municipio_area_monoramp")
+
+        assert gsresponse==200
+
+
+    def test_continuousVariableDualRamp(self):
+        """
+        Test creation of a continuous variable dual ramp style.
+        """
+        num_intervals = 5
+        
+        # Take range in PostgreSQL column
+        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
+        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi.close()
+
+        # Create style
+        s = sld.GsSldStyles()
+
+        r = s.continuousVariableDualRamp("#ff2727", "#ffffff", "#0a6bc8", \
+                                         "#525252", "#525252", "#525252", \
+                                         0.15, data, num_intervals, 500000000, "jenks", 3, "area", \
+                                         "Areas %s", "Área entre %s y %s km2", \
+                                         "Municipios con 500 km2", 
+                                         ruleTitleLambda=lambda x: round(x/1000000, 1))
+
+        gsresponse = self.gsi.createStyle("municipio_area_dualramp", str(r))
+        assert gsresponse==200
+
+        # Create feature type from PostGIS table
+        ft = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
+                                                        "new_postgis_ds", \
+                                                        "municipio", \
+                                                        "geom", "municipios_area_dualramp",
+                                                        u"Municipios de Andalucía por área por Jenks con una rampa bicolor partida en 200 km2.", \
+                                                        "postgres")
+
+        assert ft==201
+
+        gsresponse = self.gsi.updateLayer("municipios_area_dualramp", \
+                                          styles=["municipio_area_dualramp"], \
+                                          defaultStyle="municipio_area_dualramp")
+
+        assert gsresponse==200
