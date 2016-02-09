@@ -275,7 +275,7 @@ class GsPostGis(object):
         """
 
         out = {}
-                
+
         try:
             # Analyze geometry column (check SRID and geometry type)
             qsql = """
@@ -297,7 +297,7 @@ class GsPostGis(object):
             else:
                 out["srid"] = res[0][0]
                 out["type"] = res[0][1]
-            
+                            
             # Check extends
             qsql = """
             select

@@ -389,8 +389,8 @@ class GsInstance(object):
         return r.status_code
 
 
-    def createFeatureTypeFromPostGisQuery(self, workspace, datastore, sql, keyColumn, geomColumn, \
-                                          geomType, name, title, pgpassword):
+    def createFeatureTypeFromPostGisQuery(self, workspace, datastore, sql, keyColumn, \
+                                          geomColumn, name, title, pgpassword):
         """
         Creates a Feature Type from a query to a PostGIS.
 
@@ -404,8 +404,8 @@ class GsInstance(object):
         :type sql: String
         :param keyColumn: Name of the primary key column.
         :type 
-        :param geomColumn: Name of the geometry column in the SQL.
-        :type geomColumn: String
+        # :param geomColumn: Name of the geometry column in the SQL.
+        # :type geomColumn: String
         :param geomType: Type of the geometry column in the SQL. Can be Polygon, MultiPolygon ...
         :type geomType: String
         :param name: Name of the new FeatureType.
@@ -485,8 +485,6 @@ class GsInstance(object):
                           auth=(self.user, self.passwd), \
                           headers={"Content-Type": "text/json"}, \
                           data=json.dumps(creationDict))
-
-
                           
         return r.status_code
     

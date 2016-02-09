@@ -45,6 +45,10 @@ class TestDeletion(object):
         r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
                                        "municipios_area_dualramp", recurse=True)                                       
         assert r==200
+
+        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
+                                       "municipios_area_monorampnoborder", recurse=True)                                       
+        assert r==200
         
 
     def test_deleteDatastore(self):
@@ -59,6 +63,7 @@ class TestDeletion(object):
 
     def test_deleteStyle(self):
         for i in ["new_style", "municipio_area", "municipio_area_jenks", \
-                  "municipio_area_monoramp", "municipio_area_dualramp"]:
+                  "municipio_area_monoramp", "municipio_area_monorampnoborder", \
+                  "municipio_area_dualramp"]:
             r = self.gsi.deleteStyle(i)
             assert r==200

@@ -381,6 +381,47 @@ class Range(object):
         pass
 
 
+    def quartileInterval(self, data, intervals, precision):
+        """
+        Returns quartile intervals. A list of lists of two floats is returned, each one a closed interval.
+
+        :param data: Array of data.
+        :type data: List
+        :param intervals: Number of intervals.
+        :type intervals: Integer
+        :param precision: Precision of interval limits, in decimal places.
+        :type precision: integer
+        :return: A list of lists containing the interval limits as closed intervals on both extremes.
+        :rtype: List
+        """
+
+        # Prepare data
+        data = sorted(data)
+
+        # Interval size
+        intSize = int(math.floor(len(data)/intervals))
+
+        # Chop data with intSize. Last interval may be greater if not exactly divisible
+        inter = [data[i*intSize:(i+1)*intSize] for i in range(0, intervals-1)]
+        inter.append(data[(intervals-1)*intSize:])
+
+        # Retouch intervals so no overlapping values occurs between intervals
+        i = 1
+        while i<len(inter):
+            inter[i] = [k for k in inter[i] if k!=inter[i-1][-1]]
+
+            # Sometimes an empty list is returned            
+            if inter[i]==[]:
+                del inter[i]
+            else:
+                i+=1
+                        
+        # Final closed intervals
+        out = [[inter[i][0], inter[i][-1]] for i in range(0, len(inter))]
+        
+        return out
+        
+
     def equalInterval(self, data, intervals, precision):
         """
         Returns equal intervals. A list of lists of two floats is returned, each a closed interval.
@@ -691,9 +732,9 @@ class GsSldStyles(object):
         :type featureTypeStyle: GsSldFeatureTypeStyle
         :param fills: List of fills colors for each interval. Also a string is possible, cloning the value for each interval.
         :type fills: List or string
-        :param strokes: List of stroke colors for each interval. Also a string is possible, cloning the value for each interval.
+        :param strokes: List of stroke colors for each interval. Also a string is possible, cloning the value for each interval. None for no stroke.
         :type strokes: List or string
-        :param borderWidths: List of border widths. Also a float is possible, cloning the value for each interval.
+        :param borderWidths: List of border widths. Also a float is possible, cloning the value for each interval. None for no stroke.
         :type borderWidths: List or float
         :param columnData: Name of the column data.
         :type columnData: string
@@ -725,12 +766,14 @@ class GsSldStyles(object):
             fill = GsSldFillSymbolizer(fills[i])
 
             # Generate border
-            stroke = GsSldStrokeSymbolizer(strokes[i], borderWidths[i], "bevel")
+            if strokes[i] is not None:
+                stroke = GsSldStrokeSymbolizer(strokes[i], borderWidths[i], "bevel")
             
             # Generate poly symbol
             poly = GsSldPolygonSymbolizer()
             poly.addSymbol(fill)
-            poly.addSymbol(stroke)
+            if strokes[i] is not None:
+                poly.addSymbol(stroke)
 
             # Generate rule condition
             c0 = GsSldCondition("GTOE", columnData, ranges[i][0])

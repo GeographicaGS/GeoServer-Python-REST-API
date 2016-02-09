@@ -96,7 +96,7 @@ class TestCreation:
         
         r = self.gsi.createFeatureTypeFromPostGisQuery("new_workspace", \
                                                        "new_postgis_ds", sql, \
-                                                       "gid", "geom", "MultiPolygon", \
+                                                       "gid", "geom", \
                                                        "municipios_sevilla", \
                                                        "Municipios de Sevilla", \
                                                        "postgres")
@@ -107,7 +107,7 @@ class TestCreation:
         
         r = self.gsi.createFeatureTypeFromPostGisQuery("new_workspace", \
                                                        "new_postgis_ds", sql, \
-                                                       "gid", "geom", "MultiPolygon", \
+                                                       "gid", "geom", \
                                                        "municipios_cordoba", \
                                                        "Municipios de Córdoba", \
                                                        "postgres")
@@ -354,6 +354,55 @@ class TestCreation:
 
         assert gsresponse==200
 
+        
+    def test_continuousVariableMonoRampNoBorder(self):
+        """
+        Test creation of a continuous variable monoramp style.
+        """
+        num_intervals = 5
+        
+        # Take range in PostgreSQL column
+        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
+        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi.close()
+
+        # Create color ramp
+        color = sld.Color()
+        crFill = color.colorRamp("#4a4140", "#dedece", num_intervals)
+
+        # Compute interval
+        rangeBuilder = sld.Range()
+        ranges = rangeBuilder.jenksInterval(data, num_intervals, 3)
+
+        # Generate FeatureTypeStyle rules
+        featureTypeStyle = sld.GsSldFeatureTypeStyle()
+        styleBuilder = sld.GsSldStyles()
+
+        styleBuilder.createFeatureTypeStyle(featureTypeStyle, crFill, None, None, "area", ranges, \
+                                            "Área entre %s y %s km2", \
+                                            ruleTitleLambdas=lambda x: int(round(x/1000000)))
+
+        r = styleBuilder.sldFromFeatureTypeStyle(featureTypeStyle)
+                                                                        
+        gsresponse = self.gsi.createStyle("municipio_area_monorampnoborder", str(r))
+        assert gsresponse==200
+
+        # Create feature type from PostGIS table
+        ft = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
+                                                        "new_postgis_ds", \
+                                                        "municipio", \
+                                                        "geom", "municipios_area_monorampnoborder",
+                                                        u"Municipios de Andalucía por área por Jenks con una rampa monocolor sin borde.", \
+                                                        "postgres")
+
+        assert ft==201
+
+        gsresponse = self.gsi.updateLayer("municipios_area_monorampnoborder", \
+                                          styles=["municipio_area_monorampnoborder"], \
+                                          defaultStyle="municipio_area_monorampnoborder")
+
+        assert gsresponse==200
+        
 
     def test_continuousVariableDualRamp(self):
         """
@@ -373,7 +422,7 @@ class TestCreation:
 
         # Compute intervals
         s = sld.Range()
-        ranges = s.jenksMiddleInterval(data, num_intervals, 500000000, num_intervals)
+        ranges = s.jenksMiddleInterval(data, num_intervals, 500000000, 3)
 
         # Generate FeatureTypeStyle rules
         featureTypeStyle = sld.GsSldFeatureTypeStyle()
@@ -408,3 +457,68 @@ class TestCreation:
                                           defaultStyle="municipio_area_dualramp")
 
         assert gsresponse==200
+
+
+    def test_municipioAreaIntervalComparisson(self):
+        """
+        Test the four interval creation methods.
+        """
+        num_intervals = 5
+
+        # Take range in PostgreSQL column
+        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
+        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi.close()
+
+        # Color ramp
+        color = sld.Color()
+        fill = color.colorRamp("#ff2727", "#0a6bc8", num_intervals)
+        border = "#525252"
+
+        # Compute intervals
+        s = sld.Range()
+        rangesQuartile = s.quartileInterval(data, num_intervals, 3)
+        rangesEqual = s.equalInterval(data, num_intervals, 3)
+        rangesJenks = s.jenksInterval(data, num_intervals, 3)
+
+        # Generate a layer for each method
+        for i in [{"ranges": rangesQuartile,
+                   "name": "municipio_area_comp_quartile"},
+                  {"ranges": rangesEqual,
+                   "name": "municipio_area_comp_equal"},
+                  {"ranges": rangesJenks,
+                   "name": "municipio_area_comp_jenks"}]:
+            # Generate FeatureTypeStyle rules
+            styleBuilder = sld.GsSldStyles()
+            featureTypeStyle = sld.GsSldFeatureTypeStyle()
+
+            # Rule titles
+            ruleTitles = "Área entre %s y %s km2"
+
+            styleBuilder.createFeatureTypeStyle(featureTypeStyle, fill, border, 0.15, \
+                                            "area", i["ranges"], \
+                                            ruleTitles, \
+                                            ruleTitleLambdas=lambda x: int(round(x/1000000)))
+
+            r = styleBuilder.sldFromFeatureTypeStyle(featureTypeStyle)
+
+            gsresponse = self.gsi.createStyle(i["name"], str(r))
+            assert gsresponse==200
+
+            # Create feature type from PostGIS table
+            ft = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
+                                                            "new_postgis_ds", \
+                                                            "municipio", \
+                                                            "geom", i["name"],
+                                                            u"Municipios de Andalucía por área por diferentes modos de segmentación.", \
+                                                            "postgres")
+
+            assert ft==201
+
+            gsresponse = self.gsi.updateLayer(i["name"], \
+                                              styles=[i["name"]], \
+                                              defaultStyle=i["name"])
+
+            assert gsresponse==200
+
+        
