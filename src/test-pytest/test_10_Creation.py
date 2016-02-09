@@ -429,13 +429,12 @@ class TestCreation:
         styleBuilder = sld.GsSldStyles()
 
         # Rule titles
-        ruleTitles = ["Área entre %s y %s km2" for i in range(0, num_intervals)]
-        ruleTitles.append("Municipios con área 500 km2")
-        ruleTitles.extend(["Área entre %s y %s km2" for i in range(0, num_intervals)])
+        ruleTitles = styleBuilder.buildRuleTitles(ranges, "Área entre %s y %s km2", \
+                                                  "Municipios con área %s km2", \
+                                                  ruleTitleLambdas=lambda x: int(round(x/1000000)))
         
         styleBuilder.createFeatureTypeStyle(featureTypeStyle, fill, border, 0.15, "area", ranges, \
-                                            ruleTitles, \
-                                            ruleTitleLambdas=lambda x: int(round(x/1000000)))
+                                            ruleTitles)
 
         r = styleBuilder.sldFromFeatureTypeStyle(featureTypeStyle)
 

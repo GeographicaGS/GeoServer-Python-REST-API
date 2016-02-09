@@ -701,6 +701,32 @@ class GsSldStyles(object):
     with a GeoServer instance from here.
     """
 
+    def buildRuleTitles(self, ranges, dualTitle, monoTitle, ruleTitleLambdas=lambda x: x):
+        """
+        Returns an automatically generated rule titles based on a set of ranges.
+
+        :param ranges: Ranges to contruct rule titles from.
+        :type ranges: List
+        :param dualTitle: Title to apply to dual values ranges like [2,3]. Must contain a pair of %s.
+        :type dualTitle: String
+        :param monoTitle: Title to apply to mono value ranges like [4,4]. Must contain a single %s.
+        :type monoTitle: String
+        :param ruleTitleLambdas: Lambda function to apply to range values in titles.
+        :type ruleTitleLambdas: lambda
+        :return: A list of rule titles.
+        :rtype: List
+        """
+
+        out = []
+        for i in ranges:
+            if i[0]==i[1]:
+                out.append(monoTitle % ruleTitleLambdas(i[0]))
+            else:
+                out.append(dualTitle % (ruleTitleLambdas(i[0]), ruleTitleLambdas(i[1])))
+
+        return out
+        
+    
     def sldFromFeatureTypeStyle(self, featureTypeStyle):
         """    
         Returns a complete SLD from a featureTypeStyle.

@@ -20,35 +20,14 @@ class TestDeletion(object):
 
         
     def test_deleteFeatureType(self):
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", "municipio", recurse=True)
-        assert r==200
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_sevilla", recurse=True)
-        assert r==200
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_cordoba", recurse=True)
-        assert r==200
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_area", recurse=True)
-        assert r==200
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_area_jenks", recurse=True)
-        assert r==200
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_area_monoramp", recurse=True)
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_area_dualramp", recurse=True)                                       
-        assert r==200
-
-        r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
-                                       "municipios_area_monorampnoborder", recurse=True)                                       
-        assert r==200
+        for i in ["municipio", "municipios_sevilla", "municipios_cordoba", \
+                  "municipios_area", "municipios_area_jenks", "municipios_area_monoramp", \
+                  "municipios_area_dualramp", "municipio_area_comp_quartile", \
+                  "municipio_area_comp_equal", "municipio_area_comp_jenks", \
+                  "municipios_area_monorampnoborder"]:       
+            r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
+                                           i, recurse=True)                                       
+            assert r==200
         
 
     def test_deleteDatastore(self):
@@ -64,6 +43,7 @@ class TestDeletion(object):
     def test_deleteStyle(self):
         for i in ["new_style", "municipio_area", "municipio_area_jenks", \
                   "municipio_area_monoramp", "municipio_area_monorampnoborder", \
-                  "municipio_area_dualramp"]:
+                  "municipio_area_dualramp", "municipio_area_comp_equal", \
+                  "municipio_area_comp_jenks", "municipio_area_comp_quartile"]:
             r = self.gsi.deleteStyle(i)
             assert r==200

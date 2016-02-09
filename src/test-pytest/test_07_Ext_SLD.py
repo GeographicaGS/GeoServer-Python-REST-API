@@ -29,6 +29,21 @@ class TestExtSld:
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" version="1.0.0" />"""
 
 
+    def test_buildRuleTitles(self):
+        """
+        Test function buildRuleTitles.
+        """
+
+        s = sld.GsSldStyles()
+
+        ranges = [[1.223, 2.112],[2.113, 2.443],[2.444, 2.999],[3,3],[3.001, 4.232]]
+        
+        assert s.buildRuleTitles(ranges, "From %s to %s", "Strictly %s", \
+                                 ruleTitleLambdas=lambda x: round(x, 1))== \
+                                 ['From 1.2 to 2.1', 'From 2.1 to 2.4', 'From 2.4 to 3.0', \
+                                  'Strictly 3.0', 'From 3.0 to 4.2']
+        
+
     def test_createSldNamedLayer(self):
         """
         Test creation of SLD named layer.
