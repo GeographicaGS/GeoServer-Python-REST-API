@@ -200,7 +200,7 @@ class GsPostGis(object):
         distinctSql = "distinct" if distinct else ""
         sortSql = "order by %s" % column if sort else ""
         sortSql = sortSql+" desc" if sort and reverse else sortSql
-        sql = "select %s %s from %s.%s where %s ins not null%s;"
+        sql = "select %s %s from %s.%s where %s is not null %s;"
 
         # Execute
         cur.execute(sql, (AsIs(distinctSql), AsIs(column), AsIs(schema), AsIs(table), \
