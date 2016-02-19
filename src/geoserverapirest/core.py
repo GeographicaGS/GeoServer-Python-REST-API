@@ -635,7 +635,10 @@ class GsInstance(object):
 
         if r.status_code==200:
             r = r.json()
-            return [i["name"] for i in r["layers"]["layer"]]
+            if r["layers"]=="":
+                return []
+            else:
+                return [i["name"] for i in r["layers"]["layer"]]
                          
 
     def getLayer(self, name):

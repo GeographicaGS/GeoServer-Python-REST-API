@@ -81,6 +81,15 @@ class TestCreation:
         assert r==201
 
 
+    def test_getLayerNamesEmpty(self):
+        """
+        Return of getLayerNames when no layers available.
+        """
+        r = self.gsi.getLayerNames()
+
+        assert r==[]
+        
+        
     def test_createFeatureTypeFromPostGisTable(self):
         r = self.gsi.createFeatureTypeFromPostGisTable("new_workspace", \
                                                        "new_postgis_ds", "municipio", \
