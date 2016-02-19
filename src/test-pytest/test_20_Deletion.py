@@ -24,7 +24,8 @@ class TestDeletion(object):
                   "municipios_area", "municipios_area_jenks", "municipios_area_monoramp", \
                   "municipios_area_dualramp", "municipio_area_comp_quartile", \
                   "municipio_area_comp_equal", "municipio_area_comp_jenks", \
-                  "municipios_area_monorampnoborder"]:       
+                  "municipios_area_monorampnoborder", "municipio_automate_test_00", \
+                  "municipio_automate_test_01"]:       
             r = self.gsi.deleteFeatureType("new_workspace", "new_postgis_ds", \
                                            i, recurse=True)                                       
             assert r==200
@@ -44,6 +45,7 @@ class TestDeletion(object):
         for i in ["new_style", "municipio_area", "municipio_area_jenks", \
                   "municipio_area_monoramp", "municipio_area_monorampnoborder", \
                   "municipio_area_dualramp", "municipio_area_comp_equal", \
-                  "municipio_area_comp_jenks", "municipio_area_comp_quartile"]:
+                  "municipio_area_comp_jenks", "municipio_area_comp_quartile", \
+                  "test_automate_00", "test_automate_01", "test_automate_02"]:
             r = self.gsi.deleteStyle(i)
             assert r==200

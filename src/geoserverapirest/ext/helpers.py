@@ -11,8 +11,6 @@ import geoserverapirest.ext.postgis as pg
 reload(pg)
 import geoserverapirest.ext.sld as sld
 reload(sld)
-# import config_layers as layers
-# import config as c
 
 
 def automateStyles(geoserver, postgis, styles):
@@ -52,17 +50,21 @@ def automateStyles(geoserver, postgis, styles):
                                             style["intervals"])
         
                 if style["segmentationType"]=="quartile":
-                    ranges = rangeBuilder.quartileInterval(data, style["intervals"], style["precision"])
+                    ranges = rangeBuilder.quartileInterval(data, style["intervals"], \
+                                                           style["precision"])
                 elif style["segmentationType"]=="equal":
-                    ranges = rangeBuilder.equalInterval(data, style["intervals"], style["precision"])
+                    ranges = rangeBuilder.equalInterval(data, style["intervals"], \
+                                                        style["precision"])
                 elif style["segmentationType"]=="jenks":
-                    ranges = rangeBuilder.jenksInterval(data, style["intervals"], style["precision"])
+                    ranges = rangeBuilder.jenksInterval(data, style["intervals"], \
+                                                        style["precision"])
         
                 featureTypeStyle = sld.GsSldFeatureTypeStyle()
         
-                ruleTitles = styleBuilder.buildRuleTitles(ranges, style["dualRuleTitles"], \
-                                                          style["monoRuleTitles"], ruleTitleLambdas = \
-                                                          style["ruleTitleLambda"])
+                ruleTitles = \
+                  styleBuilder.buildRuleTitles(ranges, style["dualRuleTitles"], \
+                                               style["monoRuleTitles"], \
+                                               ruleTitleLambdas = style["ruleTitleLambda"])
                 
                 styleBuilder.createFeatureTypeStyle(featureTypeStyle, fills, None, None, \
                                                     style["column"], ranges, ruleTitles)
@@ -77,5 +79,59 @@ def automateStyles(geoserver, postgis, styles):
                 
         pgi.close()
 
+    else:
+        print "Target GeoServer unreachable!"
+
+
+        
+def automateLayers(geoserver, layers):
+    """
+    Automate layer creation. See tests for an example.
+
+    :param geoserver: A GeoServer description dictionary.
+    :type geoserver: Dict
+    :param layers: A layers description dictionary.
+    :type layers: Dict
+    """
+
+    gsi = gs.GsInstance(geoserver["url"], geoserver["user"], geoserver["pass"])
+    existingLayers = gsi.getLayerNames()
+
+
+    if gsi.checkAlive()==200:
+        print "Target GeoServer active..."
+        
+        # Creating layers
+        for name, layer in layers.iteritems():
+            if name not in existingLayers: 
+                print "Creating layer %s: " % name
+                
+                # Generate Feature Type
+                if layer["type"]=="sql":
+                    r = gsi.createFeatureTypeFromPostGisQuery( \
+                            layer["workspace"], layer["datastore"], \
+                            layer["sql"], layer["idcolumn"], \
+                            layer["geomcolumn"], name, \
+                            layer["title"], layer["postgis"]["pass"])
+                            
+                elif layer["type"]=="table":
+                    r = gsi.createFeatureTypeFromPostGisTable( \
+                            layer["workspace"], layer["datastore"], \
+                            layer["table"], layer["geomcolumn"], \
+                            name, layer["title"], layer["postgis"]["pass"])
+
+                else:
+                    print "Unrecognized layer type."
+                            
+                print r==201
+                                                          
+                r = gsi.updateLayer(name, styles=layer["styles"], \
+                                    defaultStyle=layer["styles"][0])
+        
+                print "Updating layer %s: " % name
+                print r==200
+            else:
+                print "Layer %s already exists." % name
+    
     else:
         print "Target GeoServer unreachable!"
