@@ -24,6 +24,7 @@ typeConversion = {
     u"varchar": "java.lang.String",
     u"geometry.ST_MultiPolygon": "com.vividsolutions.jts.geom.MultiPolygon",
     u"geometry.ST_Polygon": "com.vividsolutions.jts.geom.Polygon",
+    u"geometry.ST_Point": "com.vividsolutions.jts.geom.Point",
     u"float8": "java.lang.Double"
 }
 
