@@ -13,20 +13,17 @@ import geoserverapirest.ext.sld as sld
 reload(sld)
 
 
-def automateStyles(geoserver, postgis, styles):
+def automateStyles(geoserver, styles):
     """
     Automates style creation. See tests for an example.
 
     :param geoserver: A GeoServer description dictionary.
     :type geoserver: Dict
-    :param postgis: A PostGIS description dictionary.
-    :type postgis: Dict
     :param styles: A styles description dictionary.
     :type styles: Dict
     """
 
     gsi = gs.GsInstance(geoserver["url"], geoserver["user"], geoserver["pass"])
-    pgi = pg.GsPostGis(postgis["host"], postgis["port"], postgis["db"], postgis["user"], postgis["pass"])
 
     if gsi.checkAlive()==200:
         print "Target GeoServer active..."
@@ -38,6 +35,10 @@ def automateStyles(geoserver, postgis, styles):
 
         # Creating styles    
         for name, style in styles.iteritems():
+            pgi = pg.GsPostGis(style["postgis"]["host"], style["postgis"]["port"], \
+                               style["postgis"]["db"], style["postgis"]["user"], \
+                               style["postgis"]["pass"])
+
             if name not in existingStyles:
                 print "Creating style %s: " % name
                 

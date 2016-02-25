@@ -50,6 +50,7 @@ styles = {
         "colorScheme": colorSchemes["design-seeds-color-arrange"],
         "intervals": 8,
         "precision": 1,
+        "postgis": postgis,
         "schema": "data",
         "table": "municipio",
         "column": "area",
@@ -64,6 +65,7 @@ styles = {
         "colorScheme": colorSchemes["design-seeds-flora-hues"],
         "intervals": 4,
         "precision": 2,
+        "postgis": postgis,
         "schema": "data",
         "table": "municipio",
         "column": "area",
@@ -78,6 +80,7 @@ styles = {
         "colorScheme": colorSchemes["design-seeds-color-logged"],
         "intervals": 5,
         "precision": 2,
+        "postgis": postgis,
         "schema": "data",
         "table": "municipio",
         "column": "area",
@@ -127,7 +130,7 @@ class TestAutomation(object):
 
         
     def test_automateStyles(self):
-        helpers.automateStyles(geoserver, postgis, styles)
+        helpers.automateStyles(geoserver, styles)
 
         existingStyles = self.gsi.getStyleNames()
         
