@@ -44,12 +44,20 @@ def automateStyles(geoserver, styles):
                 
                 data = pgi.getColumnData(style["schema"], style["table"], style["column"], \
                                          sort=True)
-        
-                if style["segmentationType"] in ["quartile", "equal", "jenks"]:
+
+                                         
+                if style["colorScheme"]["type"]=="colorRamp":
                     fills = color.colorRamp(style["colorScheme"]["low"], \
                                             style["colorScheme"]["high"], \
                                             style["intervals"])
-        
+                                            
+                elif style["colorScheme"]["type"]=="dualRamp":
+                    fills = color.colorDualRamp(style["colorScheme"]["low"], \
+                                                style["colorScheme"]["middle"], \
+                                                style["colorScheme"]["high"], \
+                                                (style["intervals"]-1)/2)
+
+                                                        
                 if style["segmentationType"]=="quartile":
                     ranges = rangeBuilder.quartileInterval(data, style["intervals"], \
                                                            style["precision"])

@@ -30,14 +30,22 @@ postgis = {
 
 colorSchemes = {
     "design-seeds-color-arrange": {
+        "type": "colorRamp",
         "low": "#dedece",
         "high": "#4a4140"},
     "design-seeds-flora-hues": {
+        "type": "colorRamp",
         "high": "#d0d4ae",
         "low": "#e9e1f2"},
     "design-seeds-color-logged": {
+        "type": "colorRamp",
         "low": "#d4bfac",
-        "high": "#4d413b"}
+        "high": "#4d413b"},
+    "design-seeds-double": {
+        "type": "dualRamp",
+        "low": "#e4ebf0",
+        "middle": "#8fb59e",
+        "high": "#61669e"}
 }
 
 
