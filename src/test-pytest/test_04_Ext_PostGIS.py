@@ -17,8 +17,8 @@ class TestExtPostGis:
     """
     
     def setup(self):
-        self.pgi = pg.GsPostGis("db", "5432", "test_geoserver", \
-                                "postgres", "postgres")
+        self.pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", \
+                                 "user": "postgres", "pass": "postgres"})
 
             
     def test_getFieldsFromTable(self):
@@ -95,17 +95,17 @@ class TestExtPostGis:
         assert r == [1647885.88, 1254911103.14]
 
 
-    def test_getColumnData(self):
+    def test_getColumnDataFromTable(self):
         """
-        Test getColumnData.
+        Test getColumnDataFromTable.
         """
 
-        rAll = self.pgi.getColumnData("data", "municipio", "area")
-        rSorted = self.pgi.getColumnData("data", "municipio", "area", sort=True)
-        rSortedReverse = self.pgi.getColumnData("data", "municipio", "area", sort=True, \
-                                                reverse=True)
-        rDistinctSorted = self.pgi.getColumnData("data", "municipio", "area", sort=True, \
-                                                    distinct=True)
+        rAll = self.pgi.getColumnDataFromTable("data", "municipio", "area")
+        rSorted = self.pgi.getColumnDataFromTable("data", "municipio", "area", sort=True)
+        rSortedReverse = self.pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, \
+                                                         reverse=True)
+        rDistinctSorted = self.pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, \
+                                                          distinct=True)
         self.pgi.close()
 
         assert rAll == td.rAll
@@ -115,6 +115,17 @@ class TestExtPostGis:
         assert rSortedReverse == td.rSortedReverse
 
         assert rDistinctSorted == td.rDistinctSorted
+
+        
+    def test_getColumnDataFromSql(self):
+        """
+        Test getColumnDataFromSql.
+        """
+
+        rSql = self.pgi.getColumnDataFromSql("select area from data.municipio where area<5000000 order by area")
+        self.pgi.close()
+
+        assert rSql == td.sql
 
 
     def test_analyzeGeomColumnFromTable(self):

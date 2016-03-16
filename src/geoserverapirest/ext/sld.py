@@ -12,6 +12,14 @@ which are to be entered in the right order. Check the example code and the examp
 valid.
 """
 
+# Constants
+
+strokeLineJoin={
+    "bevel": "bevel"
+}
+
+
+
 class GsSldElement(object):
     """
     This is the base class for SLD elements.
@@ -155,59 +163,90 @@ class GsSldFeatureTypeStyle(GsSldElement):
 
         self.sld.insert(0, rule())
 
+        
+class GsSldConditionOr(GsSldElement):
+    c0 = None
+    c1 = None
+    
+    def __init__(self, c0, c1):
+        self.c0 = c0
+        self.c1 = c1
 
-
-class GsSldCondition(GsSldElement):
-    """
-    Represents an SLD condition for filters.
-    """
-
-    def __init__(self, conType, field, value):
-        """
-        Creates an SLD condition for filters.
-
-        :param conType: Condition type. Available conditions are GT for greater than, GTOE for greater than or equal to and LTOE for less than or equal to.
-        :type: String
-        :param field: Field to apply the condition to.
-        :type: String
-        :param value: Condition value.
-        :type value: String
-        """
-
-        if conType=='GT':
-            cond = "PropertyIsGreaterThan"
-        elif conType=='LTOE':
-            cond = "PropertyIsLessThanOrEqualTo"
-        elif conType=="GTOE":
-            cond = "PropertyIsGreaterThanOrEqualTo"
-        else:
-            raise SldException("Unknown SLD filter condition.")
-            
         xml = \
-            '<ogc:%s xmlns:ogc="http://www.opengis.net/ogc">' % cond + \
-            '<ogc:PropertyName>%s</ogc:PropertyName>' % field + \
-            '<ogc:Literal>%s</ogc:Literal>' % value + \
-            '</ogc:%s>' % cond
+          '<ogc:Or xmlns:ogc="http://www.opengis.net/ogc"></ogc:Or>'
+
+        comp = x.fromstring(xml)
+        comp.insert(0, c0.sld)
+        comp.insert(0, c1.sld)
+        self.sld = comp
+
+        
+class GsSldConditionAnd(GsSldElement):
+    c0 = None
+    c1 = None
+    
+    def __init__(self, c0, c1):
+        self.c0 = c0
+        self.c1 = c1
+
+        xml = \
+          '<ogc:And xmlns:ogc="http://www.opengis.net/ogc"></ogc:And>'
+
+        comp = x.fromstring(xml)
+        comp.insert(0, c0.sld)
+        comp.insert(0, c1.sld)
+        self.sld = comp
+
+
+class GsSldConditionGtoe(GsSldElement):
+    field = None
+    value = None
+
+    def __init__(self, field, value):
+        self.field = field
+        self.value = value
+
+        xml = \
+            '<ogc:PropertyIsGreaterThanOrEqualTo xmlns:ogc="http://www.opengis.net/ogc">'+ \
+            '<ogc:PropertyName>%s</ogc:PropertyName>' % self.field + \
+            '<ogc:Literal>%s</ogc:Literal>' % self.value + \
+            '</ogc:PropertyIsGreaterThanOrEqualTo>'
 
         self.sld = x.fromstring(xml)
-        
 
-    def composite(self, rule, boolean):
-        """
-        Composites the present condition with another one.
 
-        :param rule: Rule to compose this with, or a list of rules to compose with this. >> TODO
-        :type rule: xml.etree.ElementTree
-        :param boolean: Boolean operator to compose. And and Or are valid values.
-        :type boolean: String
-        """
+class GsSldConditionLtoe(GsSldElement):
+    field = None
+    value = None
 
-        xml = '<ogc:%s xmlns:ogc="http://www.opengis.net/ogc"></ogc:%s>' % (boolean, boolean)
-        comp = x.fromstring(xml)
-        comp.insert(0, rule.sld)
-        comp.insert(0, self.sld)
-        self.sld = comp
-        
+    def __init__(self, field, value):
+        self.field = field
+        self.value = value
+
+        xml = \
+            '<ogc:PropertyIsLessThanOrEqualTo xmlns:ogc="http://www.opengis.net/ogc">'+ \
+            '<ogc:PropertyName>%s</ogc:PropertyName>' % self.field + \
+            '<ogc:Literal>%s</ogc:Literal>' % self.value + \
+            '</ogc:PropertyIsLessThanOrEqualTo>'
+
+        self.sld = x.fromstring(xml)
+
+
+class GsSldConditionEqual(GsSldElement):
+    field = None
+    value = None
+
+    def __init__(self, field, value):
+        self.field = field
+        self.value = value
+
+        xml = \
+            '<ogc:PropertyIsEqualTo xmlns:ogc="http://www.opengis.net/ogc">'+ \
+            '<ogc:PropertyName>%s</ogc:PropertyName>' % self.field + \
+            '<ogc:Literal>%s</ogc:Literal>' % self.value + \
+            '</ogc:PropertyIsEqualTo>'
+
+        self.sld = x.fromstring(xml)
         
 
 class GsSldFilter(GsSldElement):
@@ -293,7 +332,7 @@ class GsSldStrokeSymbolizer(GsSldElement):
         :type color: String
         :param width: The width of the stroke.
         :type width: Double
-        :param linejoin: The line join style. Possible values are bevel.
+        :param linejoin: The line join style. Possible values are stored at constant strokeLineJoin.
         :type linejoin: String
         """
 
@@ -802,13 +841,13 @@ class GsSldStyles(object):
                 poly.addSymbol(stroke)
 
             # Generate rule condition
-            c0 = GsSldCondition("GTOE", columnData, ranges[i][0])
-            c1 = GsSldCondition("LTOE", columnData, ranges[i][1])
-            c0.composite(c1, "And")
+            cond = GsSldConditionAnd(
+                GsSldConditionGtoe(columnData, ranges[i][0]),
+                GsSldConditionLtoe(columnData, ranges[i][1]))
 
             # Generate the filter
             filter = GsSldFilter()
-            filter.addCondition(c0)
+            filter.addCondition(cond)
 
             # Create rule
             title = ruleTitles[i] % (ruleTitleLambdas[i](ranges[i][0]), \
@@ -820,5 +859,3 @@ class GsSldStyles(object):
             rule.addFilter(filter)
 
             featureTypeStyle.addRule(rule)
-
-

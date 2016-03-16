@@ -140,7 +140,7 @@ class TestCreation:
         """
 
         # Take range in PostgreSQL column
-        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
+        pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", "user": "postgres", "pass": "postgres"})
         r = pgi.getColumnMinMax("data", "municipio", "area")
         pgi.close()
 
@@ -181,13 +181,13 @@ class TestCreation:
             poly.addSymbol(stroke)
 
             # Generate rule condition
-            c0 = sld.GsSldCondition("GT", "area", range00[i][0])
-            c1 = sld.GsSldCondition("LTOE", "area", range00[i][1])
-            c0.composite(c1, "And")
+            cond = sld.GsSldConditionAnd(
+                sld.GsSldConditionGtoe("area", range00[i][0]),
+                sld.GsSldConditionLtoe("area", range00[i][1]))
 
             # Generate the filter
             filter = sld.GsSldFilter()
-            filter.addCondition(c0)
+            filter.addCondition(cond)
 
             # Create rule
             rule = sld.GsSldRule("Areas %s" % i, \
@@ -237,8 +237,8 @@ class TestCreation:
         num_intervals = 6
         
         # Take range in PostgreSQL column
-        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
-        r = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", "user": "postgres", "pass": "postgres"})
+        r = pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, distinct=True)
         pgi.close()
 
         # Create first part of the color ramp, up to a data of 3.000.000, in 5 steps
@@ -265,13 +265,13 @@ class TestCreation:
             poly.addSymbol(stroke)
 
             # Generate rule condition
-            c0 = sld.GsSldCondition("GTOE", "area", intervals[i][0])
-            c1 = sld.GsSldCondition("LTOE", "area", intervals[i][1])
-            c0.composite(c1, "And")
+            cond = sld.GsSldConditionAnd(
+                sld.GsSldConditionGtoe("area", intervals[i][0]),
+                sld.GsSldConditionLtoe("area", intervals[i][1]))
 
             # Generate the filter
             filter = sld.GsSldFilter()
-            filter.addCondition(c0)
+            filter.addCondition(cond)
 
             # Create rule
             rule = sld.GsSldRule("Areas %s" % i, \
@@ -321,8 +321,8 @@ class TestCreation:
         num_intervals = 5
         
         # Take range in PostgreSQL column
-        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
-        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", "user": "postgres", "pass": "postgres"})
+        data = pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, distinct=True)
         pgi.close()
 
         # Create color ramp
@@ -371,8 +371,8 @@ class TestCreation:
         num_intervals = 5
         
         # Take range in PostgreSQL column
-        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
-        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", "user": "postgres", "pass": "postgres"})
+        data = pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, distinct=True)
         pgi.close()
 
         # Create color ramp
@@ -420,8 +420,8 @@ class TestCreation:
         num_intervals = 4
         
         # Take range in PostgreSQL column
-        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
-        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", "user": "postgres", "pass": "postgres"})
+        data = pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, distinct=True)
         pgi.close()
 
         # Color ramp
@@ -474,8 +474,8 @@ class TestCreation:
         num_intervals = 5
 
         # Take range in PostgreSQL column
-        pgi = pg.GsPostGis("db", "5432", "test_geoserver", "postgres", "postgres")
-        data = pgi.getColumnData("data", "municipio", "area", sort=True, distinct=True)
+        pgi = pg.GsPostGis({"host": "db", "port": "5432", "db": "test_geoserver", "user": "postgres", "pass": "postgres"})
+        data = pgi.getColumnDataFromTable("data", "municipio", "area", sort=True, distinct=True)
         pgi.close()
 
         # Color ramp

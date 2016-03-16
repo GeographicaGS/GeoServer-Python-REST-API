@@ -79,15 +79,28 @@ class TestExtSld:
         Test creation of a condition.
         """
 
-        s = sld.GsSldCondition("GT", "afield", "30.2")
-        
-        assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsGreaterThan xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThan>"""
+        rule = sld.GsSldConditionAnd(
+            sld.GsSldConditionGtoe("afield", 30.2),
+            sld.GsSldConditionLtoe("afield", 40.2))
 
-        s = sld.GsSldCondition("GTOE", "afield", "30.2")
+        assert str(rule)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:And xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyIsLessThanOrEqualTo><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>40.2</ns0:Literal></ns0:PropertyIsLessThanOrEqualTo><ns0:PropertyIsGreaterThanOrEqualTo><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThanOrEqualTo></ns0:And>"""
+
+        rule = sld.GsSldConditionOr(
+            sld.GsSldConditionAnd(
+                sld.GsSldConditionEqual("afield", "Córdoba"),
+                sld.GsSldConditionAnd(
+                    sld.GsSldConditionGtoe("anotherfield", 30.2),
+                    sld.GsSldConditionLtoe("anotherfield", 40.2))
+            ),
+            sld.GsSldConditionEqual("afield", "Sevilla"))
+                    
+        assert str(rule)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:Or xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyIsEqualTo><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>Sevilla</ns0:Literal></ns0:PropertyIsEqualTo><ns0:And><ns0:And><ns0:PropertyIsLessThanOrEqualTo><ns0:PropertyName>anotherfield</ns0:PropertyName><ns0:Literal>40.2</ns0:Literal></ns0:PropertyIsLessThanOrEqualTo><ns0:PropertyIsGreaterThanOrEqualTo><ns0:PropertyName>anotherfield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThanOrEqualTo></ns0:And><ns0:PropertyIsEqualTo><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>Córdoba</ns0:Literal></ns0:PropertyIsEqualTo></ns0:And></ns0:Or>"""
+
+        s = sld.GsSldConditionGtoe("afield", "30.2")
         
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsGreaterThanOrEqualTo xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsGreaterThanOrEqualTo>"""
 
-        s = sld.GsSldCondition("LTOE", "afield", "30.2")
+        s = sld.GsSldConditionLtoe("afield", "30.2")
         
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:PropertyIsLessThanOrEqualTo xmlns:ns0="http://www.opengis.net/ogc"><ns0:PropertyName>afield</ns0:PropertyName><ns0:Literal>30.2</ns0:Literal></ns0:PropertyIsLessThanOrEqualTo>"""
 
@@ -256,11 +269,12 @@ class TestExtSld:
         polySym.addSymbol(stroke)
 
         # Creates rule condition
-        c1 = sld.GsSldCondition("GT", "area", 3)
-        c2 = sld.GsSldCondition("LTOE", "area", 4)
-        c1.composite(c2, "And")
+        cond = sld.GsSldConditionAnd(
+            sld.GsSldConditionGtoe("area", 3),
+            sld.GsSldConditionLtoe("area", 4))
+        
         filter = sld.GsSldFilter()
-        filter.addCondition(c1)
+        filter.addCondition(cond)
 
         # Create rule
         rule = sld.GsSldRule("A rule", "This is a rule")
@@ -278,11 +292,5 @@ class TestExtSld:
         root = sld.GsSldRoot()
         root.addNamedLayer(namedLayer)
 
-        assert str(root)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" xmlns:ns1="http://www.opengis.net/ogc" version="1.0.0"><NamedLayer><Name>municipio</Name><UserStyle><Name>municipio</Name><FeatureTypeStyle><Rule><Name>A rule</Name><Title>This is a rule</Title><ns1:Filter><ns1:And><ns1:PropertyIsGreaterThan><ns1:PropertyName>area</ns1:PropertyName><ns1:Literal>3</ns1:Literal></ns1:PropertyIsGreaterThan><ns1:PropertyIsLessThanOrEqualTo><ns1:PropertyName>area</ns1:PropertyName><ns1:Literal>4</ns1:Literal></ns1:PropertyIsLessThanOrEqualTo></ns1:And></ns1:Filter><PolygonSymbolizer><Fill><CssParameter name="fill">#000000</CssParameter></Fill><Stroke><CssParameter name="stroke">#000000</CssParameter><CssParameter name="stroke-width">0.25</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke></PolygonSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></ns0:StyledLayerDescriptor>"""
-        
-
-
-        
-
-        
+        assert str(root)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" xmlns:ns1="http://www.opengis.net/ogc" version="1.0.0"><NamedLayer><Name>municipio</Name><UserStyle><Name>municipio</Name><FeatureTypeStyle><Rule><Name>A rule</Name><Title>This is a rule</Title><ns1:Filter><ns1:And><ns1:PropertyIsLessThanOrEqualTo><ns1:PropertyName>area</ns1:PropertyName><ns1:Literal>4</ns1:Literal></ns1:PropertyIsLessThanOrEqualTo><ns1:PropertyIsGreaterThanOrEqualTo><ns1:PropertyName>area</ns1:PropertyName><ns1:Literal>3</ns1:Literal></ns1:PropertyIsGreaterThanOrEqualTo></ns1:And></ns1:Filter><PolygonSymbolizer><Fill><CssParameter name="fill">#000000</CssParameter></Fill><Stroke><CssParameter name="stroke">#000000</CssParameter><CssParameter name="stroke-width">0.25</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke></PolygonSymbolizer></Rule></FeatureTypeStyle></UserStyle></NamedLayer></ns0:StyledLayerDescriptor>"""
 

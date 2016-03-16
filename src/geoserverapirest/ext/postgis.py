@@ -45,25 +45,17 @@ class GsPostGis(object):
     Data type codes for casting.
     """
     
-    def __init__(self, host, port, database, user, password):
+    def __init__(self, connection):
         """
         Creates a connection to the PostGIS.
 
-        :param host: PostGIS host.
-        :type host: String
-        :param port: PostGIS port.
-        :type port: String
-        :param database: PostGIS database.
-        :type database: String
-        :param user: PostGIS user.
-        :type user: String
-        :param password: PostGIS password.
-        :type password: String
+        :param connection: A Dict with connection parameters: host, port, db, user, pass
+        :type host: Dict
         """
         
-        self._conn = pg.connect(database=database, user=user, \
-                                password=password, port=port, \
-                                host=host)
+        self._conn = pg.connect(database=connection["db"], user=connection["user"], \
+                                password=connection["pass"], port=connection["port"], \
+                                host=connection["host"])
 
         # Get data types
         cur = self._conn.cursor()
@@ -157,6 +149,8 @@ class GsPostGis(object):
         """
         Returns the min / max values found in a column in a table.
 
+        Create a more general min / max in SQL.
+
         :param schema: Table schema name.
         :type schema: String
         :param table: Table name.
@@ -175,10 +169,41 @@ class GsPostGis(object):
         return [results[0], results[1]]
 
 
-    def getColumnData(self, schema, table, column, sort=False, reverse=False, distinct=False):
+    def getColumnDataFromSql(self, sql):
         """
-        Returns a list with all values present in the given column.
+        Returns a list with all values present in a given SQL query. The query must return a single
+        column.
 
+        /!\ BIG WARNING: This function is vulnerable to SQL injection. Use with unprivileged user with care.
+        
+        :param sql: SQL query to extract data.
+        :type schema: String
+        :param sort: If the data should be sorted by the database.
+        :type sort: Boolean
+        :param reverse: If the data should be reverse sorted by the database.
+        :type reverse: Boolean
+        :param distinct: If the data should be returned unique by the database.
+        :type distinct: Boolean
+        :return: A List with all values.
+        :rtype: List
+        """
+
+        cur = self._conn.cursor()
+
+        # Execute
+        cur.execute(sql)
+
+        # Return an array with values
+        return [i[0] for i in cur.fetchall()]
+                          
+
+    def getColumnDataFromTable(self, schema, table, column, sort=False, reverse=False, distinct=False):
+        """
+        Returns a list with all values present in the given column. This is just a wrapper to the more
+        general getColumnDataFromSql.
+
+        /!\ BIG WARNING: This function is vulnerable to SQL injection. Use with unprivileged user with care.
+        
         :param schema: Table schema name.
         :type schema: String
         :param table: Table name.
@@ -195,20 +220,14 @@ class GsPostGis(object):
         :rtype: List
         """
 
-        cur = self._conn.cursor()
-
         # Construct SQL query
         distinctSql = "distinct" if distinct else ""
         sortSql = "order by %s" % column if sort else ""
         sortSql = sortSql+" desc" if sort and reverse else sortSql
-        sql = "select %s %s from %s.%s where %s is not null %s;"
-
-        # Execute
-        cur.execute(sql, (AsIs(distinctSql), AsIs(column), AsIs(schema), AsIs(table), \
-                          AsIs(column), AsIs(sortSql)))
+        sql = "select %s %s from %s.%s where %s is not null %s;" % (distinctSql, column, schema, table, column, sortSql)
 
         # Return an array with values
-        return [i[0] for i in cur.fetchall()]
+        return self.getColumnDataFromSql(sql)
                           
         
     def analyzeGeomColumnFromTable(self, schema, table, geomColumn):
@@ -277,51 +296,47 @@ class GsPostGis(object):
 
         out = {}
 
-        try:
-            # Analyze geometry column (check SRID and geometry type)
-            qsql = """
-            select distinct
-              st_srid(%s),
-              st_geometrytype(%s)
-            from
-              (%s) a
-            """
+        # Analyze geometry column (check SRID and geometry type)
+        qsql = """
+        select distinct
+        st_srid(%s),
+        st_geometrytype(%s)
+        from
+        (%s) a
+        """
 
-            cur = self._conn.cursor()
-            cur.execute(qsql, (AsIs(geomColumn), AsIs(geomColumn), AsIs(sql)))
-            res = cur.fetchall()
+        cur = self._conn.cursor()
+        cur.execute(qsql, (AsIs(geomColumn), AsIs(geomColumn), AsIs(sql)))
+        res = cur.fetchall()
+        
+        if len(res)>1:
+            raise PostGisException("Not homogeneous SRID or geometry type: %s." % res)
+        elif len(res)==0:
+            raise PostGisException("geom column %s seems to be empty." % geomColumn)
+        else:
+            out["srid"] = res[0][0]
+            out["type"] = res[0][1]
             
-            if len(res)>1:
-                raise PostGisException("Not homogeneous SRID or geometry type: %s." % res)
-            elif len(res)==0:
-                raise PostGisException("geom column %s seems to be empty." % geomColumn)
-            else:
-                out["srid"] = res[0][0]
-                out["type"] = res[0][1]
-                            
-            # Check extends
-            qsql = """
-            select
-              min(st_xmin(%s)),
-              max(st_xmax(%s)),
-              min(st_ymin(%s)),
-              max(st_ymax(%s))
-            from
-              (%s) a;
-            """
+        # Check extends
+        qsql = """
+        select
+        min(st_xmin(%s)),
+        max(st_xmax(%s)),
+        min(st_ymin(%s)),
+        max(st_ymax(%s))
+        from
+        (%s) a;
+        """
 
-            cur.execute(qsql, (AsIs(geomColumn), AsIs(geomColumn), AsIs(geomColumn), \
-                              AsIs(geomColumn), AsIs(sql)))
-            res = cur.fetchall()
-            cur.close()
+        cur.execute(qsql, (AsIs(geomColumn), AsIs(geomColumn), AsIs(geomColumn), \
+                    AsIs(geomColumn), AsIs(sql)))
+        res = cur.fetchall()
+        cur.close()
 
-            out["xmin"] = res[0][0]
-            out["xmax"] = res[0][1]
-            out["ymin"] = res[0][2]
-            out["ymax"] = res[0][3]
-        except:
-            raise PostGisException("Something happen while checking geom column %s traits." % \
-                                    geomColumn)
+        out["xmin"] = res[0][0]
+        out["xmax"] = res[0][1]
+        out["ymin"] = res[0][2]
+        out["ymax"] = res[0][3]
 
         return out
 
