@@ -15,37 +15,20 @@ reload(sld)
 
 # Constants
 
-strokeLineJoin = sld.strokeLineJoin
 
 
 
-class Automation(object):
-    """
-    Automation objects base class.
-    """
-    out = None
-        
-    def __call__(self):
-        """
-        Treat self.sld() as itself.
-        """
-        return self.out
-
-
-
-class SemiologyStroke(Automation):
-    """
-    Automation for stroke semiology.
-    """
-
-    def __init__(self, params):
-        self.out = sld.GsSldStrokeSymbolizer(params["color"], params["width"], params["linejoin"])
 
 
 
 class SemiologyFill(Automation):
     """
     Automation for fill semiology.
+
+    Takes a stroke specification as a dictionary and stores a sld.GsSldFillSymbolizer:
+
+    Fill = {
+        "color": "#e3e2e1"}
     """
 
     def __init__(self, params):
@@ -56,6 +39,16 @@ class SemiologyFill(Automation):
 class SemiologyPolygonManual(Automation):
     """
     Automation for manual polygon style.
+
+    Takes a polygon style as a dictionary and stores a sld.GsSldPolygonSymbolizer:
+
+    PolygonManual = {
+       "stroke": {
+          "color": "#3e3e3e",
+          "width": 2,
+          "linejoin": h.strokeLineJoin["bevel"]},
+       "fill": {
+           "color": "#e3e2e1"}}
     """
 
     def __init__(self, params):
@@ -65,19 +58,38 @@ class SemiologyPolygonManual(Automation):
 
 
 
-class SemiologyPolygonDoubleRamp(Automation):
-    """
-    Automation for polygon double ramp.
-    """
-
-    def __init__(self, params):
-        pass
-
-
-
 class SemiologyPolygonSimpleRamp(Automation):
     """
     Automation for polygon simple ramp.
+
+    Takes a polygon ramp definition as a dictionary and a number of intervals and stores a list of
+    sld.GsSldPolygonSymbolizer with the definition of each element of the ramp:
+
+    PolygonSimpleRamp = {
+       "stroke": {
+             "color": "#3e3e3e",
+             "width": 2,
+             "linejoin": h.strokeLineJoin["bevel"]},
+       "low": "#dedece",
+       "high": "#4a4140"}
+
+    """
+
+    def __init__(self, params, intervals):
+        c = sld.Color()
+        colors = c.colorRamp(params["low"], params["high"], intervals)
+        out = []
+
+        for s in colors:
+            out.append(SemiologyPolygonManual({"stroke": params["stroke"], "fill": {"color": s}})())
+
+        self.out = out
+
+            
+
+class SemiologyPolygonDoubleRamp(Automation):
+    """
+    Automation for polygon double ramp.
     """
 
     def __init__(self, params):

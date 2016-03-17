@@ -14,83 +14,9 @@ Requires the Docker-Compose to be up.
 THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
 """
 
-geoserver = {
-    "url": "http://sourcegeoserver:8080/geoserver",
-    "user": "admin",
-    "pass": "geoserver"
-}
-    
-postgis = {
-    "host": "db",
-    "port": "5432",
-    "db": "test_geoserver",
-    "user": "postgres",
-    "pass": "postgres"
-}
-
-Stroke = {
-    "type": h.SemiologyStroke,
-    "color": "#3e3e3e",
-    "width": 2,
-    "linejoin": h.strokeLineJoin["bevel"]}
-        
-Fill = {
-    "type": h.SemiologyFill,
-    "color": "#e3e2e1"}
-        
-PolygonManual = {
-    "type": h.SemiologyPolygonManual,
-    "stroke": Stroke,
-    "fill": Fill}
-        
-PolygonSimpleRamp = {
-    "type": h.SemiologyPolygonSimpleRamp,
-    "stroke": Stroke,
-    "low": "#dedece",
-    "high": "#4a4140"}
-        
-PolygonDoubleRamp = {
-    "type": h.SemiologyPolygonDoubleRamp,
-    "stroke": Stroke,
-    "low": "#ff0000",
-    "middle": "#ffffff",
-    "high": "#0000ff"}
-        
-PolygonManualRamp = {
-    "type": h.SemiologyPolygonManualRamp,
-    "stroke": Stroke,
-    "colors": ["#ff0000", "#00ff00", "#0000ff"]}
-        
-
-
-
-
 # styles = {
 
-#     # A quartile style, with a single ramp style
 
-#     "test_automate_00": {
-#         "type": helpers.StyleContinuousIntervals,
-#         "data": {
-#             "type": helpers.DataPostGisTable,
-#             "postgis": postgis,
-#             "schema": "data",
-#             "table": "municipio",
-#             "column": "area",
-#             "sort": True,
-#             "reverse": False,
-#             "distinct": False},
-#         "segmentation": {
-#             "type": helpers.SegmentationQuartile,
-#             "intervals": 8,
-#             "precision": 4,
-#             "dualRuleTitles": "Entre %s y %s km2",
-#             "monoRuleTitles": "%s km2",
-#             "ruleTitleLambda": lambda x: int(round(x/1000000))},
-#         "semiology": {
-#             "type": helpers.SemiologySimpleRamp,
-#             "low": "#dedece",
-#             "high": "#4a4140"}
 #     },
 
 #     "test_manual": {
@@ -140,7 +66,22 @@ class TestAutomationClasses(object):
         """
 
         assert str(h.SemiologyPolygonManual(PolygonManual)())=="""<?xml version='1.0' encoding='UTF-8'?>\n<PolygonSymbolizer><Stroke><CssParameter name="stroke">#3e3e3e</CssParameter><CssParameter name="stroke-width">2</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke><Fill><CssParameter name="fill">#e3e2e1</CssParameter></Fill></PolygonSymbolizer>"""
-        
+
+
+    def test_SemiologyPolygonSimpleRamp(self):
+        """
+        Test semiology class for simple ramp for polygons.
+        """
+
+        print [str(a) for a in h.SemiologyPolygonSimpleRamp(PolygonSimpleRamp, 3)()]
+
+               "stroke": {
+          "color": "#3e3e3e",
+          "width": 2,
+          "linejoin": h.strokeLineJoin["bevel"]},
+
+                ['<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<PolygonSymbolizer><Stroke><CssParameter name="stroke">#3e3e3e</CssParameter><CssParameter name="stroke-width">2</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke><Fill><CssParameter name="fill">#dedece</CssParameter></Fill></PolygonSymbolizer>', '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<PolygonSymbolizer><Stroke><CssParameter name="stroke">#3e3e3e</CssParameter><CssParameter name="stroke-width">2</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke><Fill><CssParameter name="fill">#9d8f7e</CssParameter></Fill></PolygonSymbolizer>', '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<PolygonSymbolizer><Stroke><CssParameter name="stroke">#3e3e3e</CssParameter><CssParameter name="stroke-width">2</CssParameter><CssParameter name="stroke-linejoin">bevel</CssParameter></Stroke><Fill><CssParameter name="fill">#4a4140</CssParameter></Fill></PolygonSymbolizer>']
+                  
 
             
     # def test_DataPostGisTable(self):

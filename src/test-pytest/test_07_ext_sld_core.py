@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-import geoserverapirest.ext.sld as sld
+import geoserverapirest.ext.sld.core as sld
 reload(sld)
 
 """
@@ -10,9 +10,9 @@ Requires the Docker-Compose to be up.
 THIS TESTS ARE MEANT TO BE RUN INSIDE THE PYTHON-TEST CONTAINER OF THE DOCKER COMPOSE.
 """
 
-class TestExtSld:
+class TestExtSldCore:
     """
-    ext SLD test suite.
+    ext SLD core test suite.
     """
     
     def setup(self):
@@ -28,21 +28,6 @@ class TestExtSld:
         
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<ns0:StyledLayerDescriptor xmlns:ns0="http://www.opengis.net/sld" version="1.0.0" />"""
 
-
-    def test_buildRuleTitles(self):
-        """
-        Test function buildRuleTitles.
-        """
-
-        s = sld.GsSldStyles()
-
-        ranges = [[1.223, 2.112],[2.113, 2.443],[2.444, 2.999],[3,3],[3.001, 4.232]]
-        
-        assert s.buildRuleTitles(ranges, "From %s to %s", "Strictly %s", \
-                                 ruleTitleLambdas=lambda x: round(x, 1))== \
-                                 ['From 1.2 to 2.1', 'From 2.1 to 2.4', 'From 2.4 to 3.0', \
-                                  'Strictly 3.0', 'From 3.0 to 4.2']
-        
 
     def test_createSldNamedLayer(self):
         """
@@ -153,107 +138,6 @@ class TestExtSld:
         s = sld.GsSldPolygonSymbolizer()
         
         assert str(s)=="""<?xml version='1.0' encoding='UTF-8'?>\n<PolygonSymbolizer />"""
-
-
-    def test_rangesEqualInterval(self):
-        """
-        Test equal interval output.
-        """
-
-        s = sld.Range()
-        
-        assert s.equalInterval([1,3,5,3,4,15], 4, 2)== \
-            [[1.0, 4.49], [4.5, 7.99], [8.0, 11.49], [11.5, 15]]
-
-
-    def test_rangesQuartileInterval(self):
-        """
-        Test quartile interval output.
-        """
-
-        s = sld.Range()
-
-        data = [2,1,3,4,2,1,3,5,6,7,54,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,4,4,4,4,5,5,5,6,6,7,8,8,8,8,7,56,44,34,332,232,32,332,231,1001]
-
-        assert s.quartileInterval(data, 4, 1)== \
-          [[1, 1], [2, 3], [4, 6], [7, 1001]]
-        
-
-    def test_rangesJenksInterval(self):
-        """
-        Test Jenks interval output.
-        """
-
-        s = sld.Range()
-
-        data = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
-
-        assert s.jenksInterval(data, 1, 0) == [[1.0, 1001.0]]
-        
-        assert s.jenksInterval(data, 2, 0) == [[1.0, 332.0], [1001.0, 1001.0]]
-           
-        assert s.jenksInterval(data, 3, 0) == [[1.0, 56.0], [231.0, 332.0], [1001.0, 1001.0]]
-
-        assert s.jenksInterval(data, 4, 0) == [[1.0, 56.0], [231.0, 232.0], \
-                                              [332.0, 332.0], [1001.0, 1001.0]]
-                                              
-        assert s.jenksInterval(data, 5, 0) == [[1.0, 7.0], [32.0, 56.0], [231.0, 232.0], \
-                                               [332.0, 332.0], [1001.0, 1001.0]]
-
-        assert s.jenksInterval(data, 6, 0) in [[[1.0, 7.0], [32.0, 44.0], [54.0, 56.0], \
-                                                [231.0, 232.0], [332.0, 332.0], [1001.0, 1001.0]], \
-                                                [[1.0, 7.0], [32.0, 34.0], [44.0, 56.0], \
-                                                [231.0, 232.0], [332.0, 332.0], [1001.0, 1001.0]]]
-
-        assert s.jenksInterval(data, 7, 0) == [[1.0, 7.0], [32.0, 34.0], [44.0, 44.0], \
-                                               [54.0, 56.0], [231.0, 232.0], \
-                                               [332.0, 332.0], [1001.0, 1001.0]]
-
-        assert s.jenksInterval(data, -1, 0) == None
-
-        assert s.jenksInterval(data, 17, 0) == None
-
-
-    def test_rangesJenksMiddleInterval(self):
-        """
-        Test Jenks with a middle breaking value.
-        """
-
-        s = sld.Range()
-
-        data = [2,1,3,4,2,1,3,5,6,7,54,7,56,44,34,332,232,32,332,231,1001]
-
-        assert s.jenksMiddleInterval(data, 4, 50, 0) in [[[1.0, 3.0], [4.0, 7.0], [32.0, 34.0], \
-                                                          [44.0, 44.0], [50, 50], [54.0, 56.0], \
-                                                          [231.0, 232.0], [332.0, 332.0], \
-                                                          [1001.0, 1001.0]],
-                                                         [[1.0, 4.0], [5.0, 7.0], [32.0, 34.0], \
-                                                          [44.0, 44.0], [50, 50], [54.0, 56.0], \
-                                                          [231.0, 232.0], [332.0, 332.0], \
-                                                          [1001.0, 1001.0]]]
-        
-        
-    def test_createColorRamp(self):
-        """
-        Test the creation of a color ramp.
-        """
-
-        s = sld.Color()
-        cr = s.colorRamp("#2812ef", "#8e2f9c", 10)
-
-        assert cr==['#2812ef', '#3b15e6', '#4e19dc', '#5d1dd2', '#6b20c9', '#7624bf', '#7f27b6', '#862aad', '#8b2ca5', '#8e2f9c']
-
-
-    def test_createDualColorRamp(self):
-        """
-        Test the creation of a dual color ramp.
-        """
-
-        s = sld.Color()
-        cr = s.colorDualRamp("#2812ef", "#ffffff", "#8e2f9c", 4)
-        
-        assert cr==['#2812ef', '#62d5de', '#a4dba7', '#e6e6d8', '#ffffff', '#dcded3', \
-                    '#9ec7b0', '#5e7eba', '#8e2f9c']
 
         
     def test_createFullSld00(self):
