@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-import geoserverapirest.ext.sld.core as core
+import geoserverapirest.ext.sld.core as core, geoserverapirest.ext.sld.color as color
 
 """
 This set of classes works as helpers to construct SLD and should be the only entry point to this module.
@@ -90,18 +90,117 @@ class SemiologyPolygon(Automation):
 
 
 
-class StyleSld(Automation):
+class SemiologyPolygonSimpleRamp(Automation):
     """
-    Automation for a full SLD style.
+    Automation for a polygon simple ramp.
 
-    Takes a style specification as a dictionary and builds a full SLD. See test_18_automation.py for examples.
+    Takes a polygon simple ramp specification as a dictionary and stores a list of sld.GsSldPolygonSymbolizer:
 
-
-    TODO: Here, continue creating styles as per createFeatureTypeStyle at sld-deprecate.py.
+    polygonSimpleRamp = {
+        "class": sld.SemiologyPolygonSimpleRamp,
+        "stroke": stroke,
+        "steps": 5,        
+        "low": "#dedece",
+        "high": "#4a4140"
+    }
     """
 
     def __init__(self, params):
-        symbols = [a["class"](a)() for a in params["symbols"]]
+        self.out = []
+
+        c = color.Color()
+        colors = c.colorRamp(params["low"], params["high"], params["steps"])
+
+        for i in range(0, params["steps"]):
+            o = core.GsSldPolygonSymbolizer()
+            
+            if "stroke" in params.keys():
+                o.addSymbol(SemiologyStroke(params["stroke"])())
+
+            o.addSymbol(SemiologyFill({"color": colors[i]})())
+
+            self.out.append(o)
+
+
+
+class SemiologyPolygonDoubleRamp(Automation):
+    """
+    Automation for a polygon double ramp.
+
+    Takes a polygon double ramp specification as a dictionary and stores a list of sld.GsSldPolygonSymbolizer:
+
+    polygonDoubleRamp = {
+        "class": sld.SemiologyPolygonDoubleRamp,
+        "stroke": stroke,
+        "low": "#ff0000",
+        "middle": "#ffffff",
+        "high": "#0000ff"
+    }
+    """
+
+    def __init__(self, params):
+        self.out = []
+
+        c = color.Color()
+        colors = c.colorDualRamp(params["low"], params["middle"], params["high"], params["sidesteps"])
+
+        for i in range(0, (params["sidesteps"]*2)+1):
+            o = core.GsSldPolygonSymbolizer()
+
+            if "stroke" in params.keys():
+                o.addSymbol(SemiologyStroke(params["stroke"])())
+
+            o.addSymbol(SemiologyFill({"color": colors[i]})())
+
+            self.out.append(o)
+
+
+
+class SemiologyPolygonCustomRamp(Automation):
+    """
+    Automation for a polygon custom ramp.
+
+    Takes a polygon custom ramp specification as a dictionary and stores a list of sld.GsSldPolygonSymbolizer:
+
+    polygonCustomRamp = {
+        "class": sld.SemiologyPolygonCustomRamp,
+        "stroke": stroke,
+        "colors": ["#ff0000", "#00ff00", "#0000ff"]
+    }
+    """
+
+    def __init__(self, params):
+        self.out = []
+
+        for i in params["colors"]:
+            o = core.GsSldPolygonSymbolizer()
+
+            if "stroke" in params.keys():
+                o.addSymbol(SemiologyStroke(params["stroke"])())
+                
+            o.addSymbol(SemiologyFill({"color": i})())
+
+            self.out.append(o)
+
+
+
+class FilterGtoe(Automation):
+    """
+    Automation for GTOE filter.
+
+    Takes a filter specification as a dictionary and stores a 
+    
+
+
+class StyleCustom(Automation):
+    """
+    Automation for a full custom SLD style.
+
+    Takes a style specification as a dictionary and builds a full SLD. See test_18_automation.py for examples.
+    """
+
+    def __init__(self, params):
+        symbols = [str(a["class"](a)()) for a in params["symbols"]]
         rules = [a["class"](a)() if isinstance(a, dict) else a for a in params["rules"]]
         filters = [a["class"](a)() if isinstance(a, dict) else a for a in params["filters"]]
 
@@ -112,5 +211,8 @@ class StyleSld(Automation):
         print
         print filters
 
+        ft = core.GsFeatureTyleStyle()
+        
         for i in range(0, len(rules)):
             pass
+            

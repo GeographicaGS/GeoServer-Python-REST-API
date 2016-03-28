@@ -362,8 +362,8 @@ class GsPostGis(object):
         cur.close()
 
         return types
-
-
+    
+    
     
 class PostGisException(Exception):
     """
