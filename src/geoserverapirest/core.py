@@ -12,7 +12,7 @@ that refreshes this list. This minimizes REST calls for minial things to the ser
 ^^^Deprecate, rewrite
 """
 
-import requests, json, ext.postgis, ext.const
+import requests, json, ext.postgis.core, ext.const
 
 class GsInstance(object):
     """

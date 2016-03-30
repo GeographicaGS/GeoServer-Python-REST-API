@@ -8,6 +8,37 @@ Range and segmentation calculations.
 """
 
 
+class RuleNames(object):
+    """
+    This class generates rule names based on given intervals.
+    """
+
+    def ruleNames(self, ranges, mono, dual, transform=lambda x: x):
+        """
+        Takes ranges and generates rule descriptions.
+
+        :param ranges: Ranges to construct the descriptions from.
+        :type ranges: List
+        :param mono: Mono range sintactic construct.
+        :type mono: String
+        :param dual: Dual range sintactic construct.
+        :type dual: String
+        :param transform: Lambda function to modify range values.
+        :type transform: lambda
+        """
+
+        out = []
+
+        for i in ranges:
+            if i[0]==i[1]:
+                out.append(mono % transform(i[0]))
+            else:
+                out.append(dual % (transform(i[0]), transform(i[1])))
+
+        return out
+        
+    
+
 class Range(object):
     """
     This class implements several methods to calculate ranges and data series

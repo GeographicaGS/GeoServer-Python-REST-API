@@ -376,4 +376,3 @@ class PostGisException(Exception):
 
     def __str__(self):
         return "Exception in PostGIS adapter: %s" % self.explanation
-    

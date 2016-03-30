@@ -3,10 +3,14 @@
 
 import geoserverapirest.core as gs
 reload(gs)
-import geoserverapirest.ext.postgis as pg
+import geoserverapirest.ext.postgis.core as pg
 reload(pg)
-import geoserverapirest.ext.sld as sld
+import geoserverapirest.ext.sld.core as sld
 reload(sld)
+import geoserverapirest.ext.sld.color as clr
+reload(clr)
+import geoserverapirest.ext.sld.ranges as rng
+reload(rng)
 
 """
 Requires two GeoServers for testing. Check Docker-Compose.
@@ -145,14 +149,14 @@ class TestCreation:
         pgi.close()
 
         # Create first part of the color ramp, up to a data of 3.000.000, in 5 steps
-        s = sld.Range()
+        s = rng.Range()
         range00 = s.equalInterval([r[0], 3000000], 5, 2)
 
         # Modify the lowest interval a little bit, so SLD conditions take into
         # account the smallest area
         range00[0][0] = range00[0][0]-0.01
 
-        color = sld.Color()
+        color = clr.Color()
         cr00 = color.colorRamp("#a6611a", "#f0e9da", 5)
 
         # Create the second part of the color ramp, from 3.000.000 to up, in 5 steps
@@ -242,10 +246,10 @@ class TestCreation:
         pgi.close()
 
         # Create first part of the color ramp, up to a data of 3.000.000, in 5 steps
-        s = sld.Range()
+        s = rng.Range()
         intervals = s.jenksInterval(r, num_intervals, 2)
 
-        color = sld.Color()
+        color = clr.Color()
         cr = color.colorRamp("#a6611a", "#f0e9da", num_intervals)
 
         # Generate stroke symbol
@@ -326,12 +330,12 @@ class TestCreation:
         pgi.close()
 
         # Create color ramp
-        color = sld.Color()
+        color = clr.Color()
         crFill = color.colorRamp("#4a4140", "#dedece", num_intervals)
         crBorder = "#525252"
 
         # Compute interval
-        rangeBuilder = sld.Range()
+        rangeBuilder = rng.Range()
         ranges = rangeBuilder.jenksInterval(data, num_intervals, 3)
 
         # Generate FeatureTypeStyle rules
@@ -376,11 +380,11 @@ class TestCreation:
         pgi.close()
 
         # Create color ramp
-        color = sld.Color()
+        color = clr.Color()
         crFill = color.colorRamp("#4a4140", "#dedece", num_intervals)
 
         # Compute interval
-        rangeBuilder = sld.Range()
+        rangeBuilder = rng.Range()
         ranges = rangeBuilder.jenksInterval(data, num_intervals, 3)
 
         # Generate FeatureTypeStyle rules
@@ -425,12 +429,12 @@ class TestCreation:
         pgi.close()
 
         # Color ramp
-        color = sld.Color()
+        color = clr.Color()
         fill = color.colorDualRamp("#ff2727", "#ffffff", "#0a6bc8", num_intervals)
         border = "#525252"
 
         # Compute intervals
-        s = sld.Range()
+        s = rng.Range()
         ranges = s.jenksMiddleInterval(data, num_intervals, 500000000, 3)
 
         # Generate FeatureTypeStyle rules
@@ -479,12 +483,12 @@ class TestCreation:
         pgi.close()
 
         # Color ramp
-        color = sld.Color()
+        color = clr.Color()
         fill = color.colorRamp("#ff2727", "#0a6bc8", num_intervals)
         border = "#525252"
 
         # Compute intervals
-        s = sld.Range()
+        s = rng.Range()
         rangesQuartile = s.quartileInterval(data, num_intervals, 3)
         rangesEqual = s.equalInterval(data, num_intervals, 3)
         rangesJenks = s.jenksInterval(data, num_intervals, 3)

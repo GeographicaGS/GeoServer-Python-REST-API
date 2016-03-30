@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-import geoserverapirest.ext.postgis as pg
+import geoserverapirest.ext.postgis.core as pg
 import test_data as td
 reload(pg)
 
