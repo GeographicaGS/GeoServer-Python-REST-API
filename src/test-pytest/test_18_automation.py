@@ -172,9 +172,9 @@ endOfWorldCondition = {
 }
         
 
-# ----------------
-# Styles definitions
-# ----------------
+# -----------------------
+# Full styles definitions
+# -----------------------
 
 # Simple, custom, single rule style
 

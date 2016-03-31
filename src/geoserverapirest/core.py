@@ -367,8 +367,8 @@ class GsInstance(object):
         ds = self.getConnDataFromPostGisDataStore(workspace, datastore)
 
         # Add attributes
-        pgi = ext.postgis.GsPostGis({"host": ds["host"], "port": ds["port"], "db": ds["database"], \
-                                     "user": ds["user"], "pass": pgpassword})
+        pgi = ext.postgis.core.GsPostGis({"host": ds["host"], "port": ds["port"], "db": ds["database"], \
+                                          "user": ds["user"], "pass": pgpassword})
 
         # Get geometry column attributes
         geomColumnAttr = pgi.analyzeGeomColumnFromTable(ds["schema"], table, geomColumn)
@@ -456,8 +456,8 @@ class GsInstance(object):
         ds = self.getConnDataFromPostGisDataStore(workspace, datastore)
         
         # Add attributes
-        pgi = ext.postgis.GsPostGis({"host": ds["host"], "port": ds["port"], "db": ds["database"], \
-                                     "user": ds["user"], "pass": pgpassword})
+        pgi = ext.postgis.core.GsPostGis({"host": ds["host"], "port": ds["port"], "db": ds["database"], \
+                                          "user": ds["user"], "pass": pgpassword})
 
         # Get geometry column attributes
         geomColumnAttr = pgi.analyzeGeomColumnFromSql(sql, geomColumn)

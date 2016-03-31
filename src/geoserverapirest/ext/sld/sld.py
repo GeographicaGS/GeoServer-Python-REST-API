@@ -284,6 +284,25 @@ class ConditionOr(Automation):
 # Ranges automation
 # -----------------
 
+class RangesQuartileMiddle(Automation):
+    """
+    TODO: Redo this
+    Automation for a Jenks middle range calculation.
+
+    :param data: Data to create intervals from.
+    :type data: List
+    :param sideIntervals: Number of side intervals
+    :type sideIntervals: integer
+    :param precision: Precision
+    :type precision: integer
+    """
+
+    def __init__(self, data, sideIntervals, middleValue, precision):
+        a = ranges.Range()
+
+        self.out = a.quartileMiddleInterval(data, sideIntervals, middleValue, precision)
+
+        
 class RangesQuartile(Automation):
     """
     Automation for a quartile range calculation.
@@ -302,6 +321,25 @@ class RangesQuartile(Automation):
         self.out = a.quartileInterval(data, intervals, precision)
 
 
+class RangesEqualMiddle(Automation):
+    """
+    TODO: Redo this
+    Automation for a Jenks middle range calculation.
+
+    :param data: Data to create intervals from.
+    :type data: List
+    :param sideIntervals: Number of side intervals
+    :type sideIntervals: integer
+    :param precision: Precision
+    :type precision: integer
+    """
+
+    def __init__(self, data, sideIntervals, middleValue, precision):
+        a = ranges.Range()
+
+        self.out = a.equalMiddleInterval(data, sideIntervals, middleValue, precision)
+
+        
 class RangesEqual(Automation):
     """
     Automation for a equal range calculation.
@@ -477,8 +515,8 @@ class StyleCenteredIntervals(Automation):
         below = [a for a in data if a<params["mediandata"]]
         above = [a for a in data if a>params["mediandata"]]
 
-        #TODO: Erase median Jenks. A waste of time
-
+        #TODO: Erase median Ranges. A waste of time
+        
         belowIntervals = params["rangetype"](below, params["steps"], params["precision"])()
         aboveIntervals = params["rangetype"](above, params["steps"], params["precision"])()
         
@@ -509,3 +547,6 @@ class StyleCenteredIntervals(Automation):
                                  params["rulenames"]["lambda"])
 
         self.out = StyleBuilder.build(params["namedlayername"], params["stylename"], ruleNames, conditions, symbols)
+
+
+

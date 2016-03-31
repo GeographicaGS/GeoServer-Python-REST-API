@@ -45,6 +45,23 @@ class Range(object):
     segmentations.
     """
 
+    def quartileMiddleInterval(self, data, intervals, middleValue, precision):
+        """
+        TODO: This should not be this way. Find a way to concatenate intervals.
+        """
+
+        bottomData = [i for i in data if i<middleValue]
+        topData =  [i for i in data if i>middleValue]
+
+        bottomRanges = self.quartileInterval(bottomData, sideIntervals, precision)
+        topRanges = self.quartileInterval(topData, sideIntervals, precision)
+
+        bottomRanges.append([middleValue, middleValue])
+        bottomRanges.extend(topRanges)
+
+        return bottomRanges
+
+    
     def quartileInterval(self, data, intervals, precision):
         """
         Returns quartile intervals. A list of lists of two floats is returned, each one a closed interval.
@@ -84,7 +101,24 @@ class Range(object):
         out = [[inter[i][0], inter[i][-1]] for i in range(0, len(inter))]
         
         return out
-        
+
+
+    def equalMiddleInterval(self, data, intervals, middleValue, precision):
+        """
+        TODO: This should not be this way. Find a way to concatenate intervals.
+        """
+
+        bottomData = [i for i in data if i<middleValue]
+        topData =  [i for i in data if i>middleValue]
+
+        bottomRanges = self.equalInterval(bottomData, sideIntervals, precision)
+        topRanges = self.equalInterval(topData, sideIntervals, precision)
+
+        bottomRanges.append([middleValue, middleValue])
+        bottomRanges.extend(topRanges)
+
+        return bottomRanges
+            
 
     def equalInterval(self, data, intervals, precision):
         """
